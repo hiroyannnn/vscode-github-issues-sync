@@ -22,6 +22,7 @@ export class GitUtils implements IGitUtils {
     if (sshMatch) {
       return {
         owner: sshMatch[1],
+        // 正規表現で既に.gitを除外しているが、安全のため明示的に削除（防御的プログラミング）
         repo: sshMatch[2].replace(/\.git$/, ''),
       };
     }
@@ -32,6 +33,7 @@ export class GitUtils implements IGitUtils {
     if (httpsMatch) {
       return {
         owner: httpsMatch[1],
+        // 正規表現で既に.gitを除外しているが、安全のため明示的に削除（防御的プログラミング）
         repo: httpsMatch[2].replace(/\.git$/, ''),
       };
     }
@@ -60,12 +62,14 @@ export class GitUtils implements IGitUtils {
       const configPath = path.join(repoPath, '.git', 'config');
       const configContent = await fs.readFile(configPath, 'utf-8');
 
-      // [remote "origin"] セクションからURLを取得
-      const remotePattern = /\[remote "origin"\]\s+url\s*=\s*(.+)/;
+      // [remote "origin"] セクションからURLを取得（改行を跨いでマッチ）
+      const remotePattern = /\[remote "origin"\][^[]*?url\s*=\s*(.+?)(?:\n|$)/s;
       const match = configContent.match(remotePattern);
 
       if (match && match[1]) {
-        return match[1].trim();
+        // コメント（#以降）を除外してトリム
+        const url = match[1].split('#')[0].trim();
+        return url || null;
       }
 
       return null;

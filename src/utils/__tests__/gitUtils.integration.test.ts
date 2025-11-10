@@ -4,6 +4,7 @@
 
 import { GitUtils } from '../gitUtils';
 import * as path from 'path';
+import * as os from 'os';
 
 describe('GitUtils Integration Tests', () => {
   let gitUtils: GitUtils;
@@ -31,7 +32,7 @@ describe('GitUtils Integration Tests', () => {
   });
 
   it('非Gitディレクトリの場合falseを返す', async () => {
-    const nonGitPath = '/tmp';
+    const nonGitPath = os.tmpdir();
     const isGitRepo = await gitUtils.isGitRepository(nonGitPath);
     expect(isGitRepo).toBe(false);
   });

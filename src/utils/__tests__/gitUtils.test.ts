@@ -5,11 +5,22 @@
 import { GitUtils } from '../gitUtils';
 import { IGitUtils } from '../interfaces/IGitUtils';
 
+// fs/promisesをモック
+jest.mock('fs', () => ({
+  promises: {
+    stat: jest.fn(),
+    readFile: jest.fn(),
+  },
+}));
+
+import { promises as fs } from 'fs';
+
 describe('GitUtils', () => {
   let gitUtils: IGitUtils;
 
   beforeEach(() => {
     gitUtils = new GitUtils();
+    jest.clearAllMocks();
   });
 
   describe('parseRemoteUrl', () => {
@@ -54,40 +65,44 @@ describe('GitUtils', () => {
 
   describe('isGitRepository', () => {
     it('Gitリポジトリの場合trueを返す', async () => {
-      // 実際のテストでは、テスト用のGitリポジトリを用意する
-      // ここではモックを使用する想定
+      (fs.stat as jest.Mock).mockResolvedValue({ isDirectory: () => true });
       const result = await gitUtils.isGitRepository('/path/to/git/repo');
-      expect(typeof result).toBe('boolean');
+      expect(result).toBe(true);
     });
 
     it('Gitリポジトリでない場合falseを返す', async () => {
+      (fs.stat as jest.Mock).mockRejectedValue(new Error('ENOENT'));
       const result = await gitUtils.isGitRepository('/path/to/non/git/dir');
-      expect(typeof result).toBe('boolean');
+      expect(result).toBe(false);
     });
   });
 
   describe('getRepositoryInfo', () => {
-    it('Gitリポジトリの情報を取得できる', async () => {
-      // 実際のテストでは、テスト用のGitリポジトリを用意する
-      const result = await gitUtils.getRepositoryInfo('/path/to/git/repo');
-
-      if (result) {
-        expect(result).toHaveProperty('owner');
-        expect(result).toHaveProperty('repo');
-        expect(result).toHaveProperty('remoteUrl');
-      }
-    });
-
     it('Gitリポジトリでない場合nullを返す', async () => {
+      (fs.stat as jest.Mock).mockRejectedValue(new Error('ENOENT'));
       const result = await gitUtils.getRepositoryInfo('/path/to/non/git/dir');
       expect(result).toBeNull();
     });
 
     it('リモートが設定されていない場合nullを返す', async () => {
-      // リモートなしのGitリポジトリの場合
+      // .gitディレクトリは存在するがリモートなし
+      (fs.stat as jest.Mock).mockResolvedValue({ isDirectory: () => true });
+      (fs.readFile as jest.Mock).mockRejectedValue(new Error('ENOENT'));
       const result = await gitUtils.getRepositoryInfo('/path/to/local/git/repo');
-      // この場合の挙動はnullを返すか、エラーを投げるか要検討
-      expect(result === null || typeof result === 'object').toBe(true);
+      expect(result).toBeNull();
+    });
+
+    it('GitHubリポジトリの情報を取得できる', async () => {
+      (fs.stat as jest.Mock).mockResolvedValue({ isDirectory: () => true });
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        '[remote "origin"]\n\turl = git@github.com:test/repo.git'
+      );
+      const result = await gitUtils.getRepositoryInfo('/path/to/git/repo');
+      expect(result).toEqual({
+        owner: 'test',
+        repo: 'repo',
+        remoteUrl: 'git@github.com:test/repo.git',
+      });
     });
   });
 });

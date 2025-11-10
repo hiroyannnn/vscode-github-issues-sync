@@ -11,7 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onView:githubIssuesView",
+    "onCommand:githubIssuesSync.syncNow",
+    "onCommand:githubIssuesSync.configure"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -54,6 +56,7 @@
           "type": "number",
           "default": 15,
           "minimum": 5,
+          "maximum": 1440,
           "description": "Synchronization interval in minutes"
         },
         "githubIssuesSync.maxIssues": {
@@ -131,8 +134,8 @@
     "@types/jest": "^29.5.11",
     "@types/node": "20.x",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
     "@vscode/test-electron": "^2.3.8",
     "eslint": "^8.56.0",
     "glob": "^10.3.10",

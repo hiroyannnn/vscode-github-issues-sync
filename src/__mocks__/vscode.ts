@@ -34,6 +34,7 @@ export const workspace = {
     delete: jest.fn(),
     createDirectory: jest.fn(),
   },
+  onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),
 };
 
 export class Uri {

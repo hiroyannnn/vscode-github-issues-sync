@@ -183,18 +183,12 @@ describe('StorageService', () => {
 
   describe('loadAllIssues', () => {
     it('保存されている全Issueを読み込める', async () => {
-      (fs.readdir as jest.Mock).mockResolvedValue([
-        'issue-1.md',
-        'issue-2.md',
-        'sync-state.json',
-      ]);
+      (fs.readdir as jest.Mock).mockResolvedValue(['issue-1.md', 'issue-2.md', 'sync-state.json']);
 
       const markdown1 = storageService.toMarkdown({ ...mockIssue, number: 1 });
       const markdown2 = storageService.toMarkdown({ ...mockIssue, number: 2 });
 
-      (fs.readFile as jest.Mock)
-        .mockResolvedValueOnce(markdown1)
-        .mockResolvedValueOnce(markdown2);
+      (fs.readFile as jest.Mock).mockResolvedValueOnce(markdown1).mockResolvedValueOnce(markdown2);
 
       const issues = await storageService.loadAllIssues(mockStorageDir);
 

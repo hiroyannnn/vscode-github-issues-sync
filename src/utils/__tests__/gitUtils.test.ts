@@ -25,7 +25,9 @@ describe('GitUtils', () => {
 
   describe('parseRemoteUrl', () => {
     it('SSH形式のGitHub URLをパースできる', () => {
-      const result = gitUtils.parseRemoteUrl('git@github.com:hiroyannnn/vscode-github-issues-sync.git');
+      const result = gitUtils.parseRemoteUrl(
+        'git@github.com:hiroyannnn/vscode-github-issues-sync.git'
+      );
       expect(result).toEqual({
         owner: 'hiroyannnn',
         repo: 'vscode-github-issues-sync',
@@ -33,7 +35,9 @@ describe('GitUtils', () => {
     });
 
     it('HTTPS形式のGitHub URLをパースできる', () => {
-      const result = gitUtils.parseRemoteUrl('https://github.com/hiroyannnn/vscode-github-issues-sync.git');
+      const result = gitUtils.parseRemoteUrl(
+        'https://github.com/hiroyannnn/vscode-github-issues-sync.git'
+      );
       expect(result).toEqual({
         owner: 'hiroyannnn',
         repo: 'vscode-github-issues-sync',
@@ -41,7 +45,9 @@ describe('GitUtils', () => {
     });
 
     it('.git拡張子なしのHTTPS URLをパースできる', () => {
-      const result = gitUtils.parseRemoteUrl('https://github.com/hiroyannnn/vscode-github-issues-sync');
+      const result = gitUtils.parseRemoteUrl(
+        'https://github.com/hiroyannnn/vscode-github-issues-sync'
+      );
       expect(result).toEqual({
         owner: 'hiroyannnn',
         repo: 'vscode-github-issues-sync',

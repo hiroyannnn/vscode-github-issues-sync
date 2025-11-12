@@ -1,0 +1,74 @@
+name: Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage
+
+      - name: Comment test coverage
+        uses: ArtiomTr/jest-coverage-report-action@v2
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-step: install
+          test-script: npm test -- --coverage
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run compile
+
+      - name: Package extension
+        run: |
+          npm install -g @vscode/vsce
+          vsce package
+
+      - name: Check package size
+        run: |
+          VSIX_SIZE=$(stat -f%z *.vsix 2>/dev/null || stat -c%s *.vsix)
+          VSIX_SIZE_MB=$((VSIX_SIZE / 1024 / 1024))
+          echo "VSIX package size: ${VSIX_SIZE_MB}MB"
+          if [ $VSIX_SIZE_MB -gt 50 ]; then
+            echo "::warning::VSIX package is larger than 50MB (${VSIX_SIZE_MB}MB)"
+          fi

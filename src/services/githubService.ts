@@ -19,6 +19,10 @@ export class GitHubService implements IGitHubService {
 
   /**
    * Octokitインスタンスを取得（遅延初期化）
+   *
+   * @note トークンローテーション時の対応：
+   * トークンが更新される場合は、このサービスインスタンスを再作成するか、
+   * clearOctokitメソッドを呼び出してキャッシュをクリアしてください
    */
   private async getOctokit(): Promise<Octokit> {
     if (!this.octokit) {
@@ -28,6 +32,14 @@ export class GitHubService implements IGitHubService {
       });
     }
     return this.octokit;
+  }
+
+  /**
+   * キャッシュされたOctokitインスタンスをクリア
+   * トークンローテーション時に呼び出してください
+   */
+  clearOctokit(): void {
+    this.octokit = undefined;
   }
 
   /**
@@ -47,7 +59,7 @@ export class GitHubService implements IGitHubService {
       state: options.syncOptions.includeClosedIssues ? 'all' : 'open',
       sort: 'updated',
       direction: 'desc',
-      per_page: Math.min(options.syncOptions.maxIssues, 100), // GitHub APIの最大値は100
+      per_page: 30, // GitHub APIの標準ページサイズ
     };
 
     if (since) {
@@ -61,27 +73,78 @@ export class GitHubService implements IGitHubService {
       };
     }
 
-    const response = await octokit.rest.issues.listForRepo(params);
-
-    // レスポンスヘッダーからRate Limit情報を抽出
-    const rateLimit: RateLimitInfo = {
-      limit: parseInt(response.headers['x-ratelimit-limit'] || '5000', 10),
-      remaining: parseInt(response.headers['x-ratelimit-remaining'] || '0', 10),
-      reset: new Date(parseInt(response.headers['x-ratelimit-reset'] || '0', 10) * 1000),
+    // ページネーションループで全データを取得
+    type IssueDataItem = Awaited<ReturnType<typeof octokit.rest.issues.listForRepo>>['data'][number];
+    const allIssues: IssueDataItem[] = [];
+    let currentPage = 1;
+    let hasMore = true;
+    let latestEtag = options.etag;
+    let latestRateLimit: RateLimitInfo = {
+      limit: 5000,
+      remaining: 0,
+      reset: new Date(),
     };
 
+    while (hasMore && allIssues.length < options.syncOptions.maxIssues) {
+      try {
+        params.page = currentPage;
+
+        const response = await octokit.rest.issues.listForRepo(params);
+
+        // レスポンスヘッダーからRate Limit情報を抽出（毎回更新）
+        latestRateLimit = {
+          limit: parseInt(response.headers['x-ratelimit-limit'] || '5000', 10),
+          remaining: parseInt(response.headers['x-ratelimit-remaining'] || '0', 10),
+          reset: new Date(parseInt(response.headers['x-ratelimit-reset'] || '0', 10) * 1000),
+        };
+
+        latestEtag = response.headers.etag || latestEtag;
+
+        // Pull Requestを除外してフィルタリング
+        const filteredIssues = response.data.filter((issue) => !('pull_request' in issue));
+        allIssues.push(...filteredIssues);
+
+        // 次ページがあるかをlinkヘッダーで判定
+        const linkHeader = response.headers.link || '';
+        hasMore = linkHeader.includes('rel="next"');
+
+        // maxIssuesに達したら停止
+        if (allIssues.length >= options.syncOptions.maxIssues) {
+          hasMore = true; // さらにデータがある可能性
+          break;
+        }
+
+        currentPage++;
+
+        // データがない場合は終了
+        if (response.data.length === 0) {
+          hasMore = false;
+        }
+      } catch (error) {
+        // 304 Not Modifiedエラーを処理（Octokitが例外をスロー）
+        if (error instanceof Error && error.message.includes('304')) {
+          return {
+            issues: [],
+            etag: latestEtag,
+            rateLimit: latestRateLimit,
+            hasMore: false,
+          };
+        }
+        throw error;
+      }
+    }
+
     // GitHubのIssueデータを内部モデルに変換
-    type IssueData = (typeof response.data)[number];
-    const issues: Issue[] = response.data
-      .filter((issue: IssueData) => !('pull_request' in issue)) // Pull Requestを除外
-      .slice(0, options.syncOptions.maxIssues) // maxIssuesでカット
-      .map((issue: IssueData) => this.convertToIssue(issue));
+    const issues: Issue[] = allIssues
+      .slice(0, options.syncOptions.maxIssues)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((issue) => this.convertToIssue(issue as any));
 
     return {
       issues,
-      etag: response.headers.etag,
-      rateLimit,
-      hasMore: response.data.length > options.syncOptions.maxIssues,
+      etag: latestEtag,
+      rateLimit: latestRateLimit,
+      hasMore,
     };
   }
 
@@ -141,6 +204,9 @@ export class GitHubService implements IGitHubService {
 
   /**
    * 同期期間からsinceパラメータを計算
+   *
+   * @note 月末日の問題を回避：new Date() で新しい日時オブジェクトを作成してから
+   * 年月を計算することで、setMonth()での月末ロールオーバーを防止
    */
   private calculateSince(period: '3months' | '6months' | '1year' | 'all'): string | undefined {
     if (period === 'all') {
@@ -155,9 +221,22 @@ export class GitHubService implements IGitHubService {
     };
 
     const months = monthsMap[period];
-    now.setMonth(now.getMonth() - months);
 
-    return now.toISOString();
+    // 月末日のバグを避けるため、手動で年月を計算
+    let targetMonth = now.getMonth() - months;
+    let targetYear = now.getFullYear();
+
+    // 月が負になった場合は年をデクリメント
+    while (targetMonth < 0) {
+      targetMonth += 12;
+      targetYear--;
+    }
+
+    const result = new Date(now);
+    result.setFullYear(targetYear);
+    result.setMonth(targetMonth);
+
+    return result.toISOString();
   }
 
   /**

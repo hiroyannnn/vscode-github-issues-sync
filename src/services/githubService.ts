@@ -19,6 +19,10 @@ export class GitHubService implements IGitHubService {
 
   /**
    * Octokitインスタンスを取得（遅延初期化）
+   *
+   * @note トークンローテーション時の対応：
+   * トークンが更新される場合は、このサービスインスタンスを再作成するか、
+   * clearOctokitメソッドを呼び出してキャッシュをクリアしてください
    */
   private async getOctokit(): Promise<Octokit> {
     if (!this.octokit) {
@@ -28,6 +32,14 @@ export class GitHubService implements IGitHubService {
       });
     }
     return this.octokit;
+  }
+
+  /**
+   * キャッシュされたOctokitインスタンスをクリア
+   * トークンローテーション時に呼び出してください
+   */
+  clearOctokit(): void {
+    this.octokit = undefined;
   }
 
   /**
@@ -47,7 +59,7 @@ export class GitHubService implements IGitHubService {
       state: options.syncOptions.includeClosedIssues ? 'all' : 'open',
       sort: 'updated',
       direction: 'desc',
-      per_page: Math.min(options.syncOptions.maxIssues, 100), // GitHub APIの最大値は100
+      per_page: 30, // GitHub APIの標準ページサイズ
     };
 
     if (since) {
@@ -80,12 +92,14 @@ export class GitHubService implements IGitHubService {
     // linkヘッダーから次ページの存在を判定（rel="next"が存在しているか）
     const linkHeader = response.headers.link || '';
     const hasNextPage = linkHeader.includes('rel="next"');
+    // hasMoreは：（1）次ページがある OR （2）フィルター前のデータがmaxIssuesを超える
+    const hasMore = hasNextPage || response.data.length > options.syncOptions.maxIssues;
 
     return {
       issues,
       etag: response.headers.etag,
       rateLimit,
-      hasMore: hasNextPage || filteredIssues.length > options.syncOptions.maxIssues,
+      hasMore,
     };
   }
 

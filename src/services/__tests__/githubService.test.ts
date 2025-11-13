@@ -143,7 +143,8 @@ describe('GitHubService', () => {
         type: 'vscode',
       });
 
-      const mockIssues = Array.from({ length: 50 }, (_, i) => ({
+      // 最初のページ: 30個のIssue（per_page=30で1ページ目）
+      const firstPageIssues = Array.from({ length: 30 }, (_, i) => ({
         id: i + 1,
         number: i + 1,
         title: `Issue ${i + 1}`,
@@ -165,12 +166,48 @@ describe('GitHubService', () => {
         html_url: `https://github.com/test/repo/issues/${i + 1}`,
       }));
 
-      mockListForRepo.mockResolvedValue({
-        data: mockIssues,
+      // 2ページ目: 20個のIssue（rel="next"リンク付き）
+      const secondPageIssues = Array.from({ length: 20 }, (_, i) => ({
+        id: i + 31,
+        number: i + 31,
+        title: `Issue ${i + 31}`,
+        body: 'Test body',
+        state: 'open',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-02T00:00:00Z',
+        closed_at: null,
+        user: {
+          login: 'testuser',
+          id: 100,
+          avatar_url: 'https://example.com/avatar.png',
+          url: 'https://api.github.com/users/testuser',
+        },
+        assignees: [],
+        labels: [],
+        milestone: null,
+        url: `https://api.github.com/repos/test/repo/issues/${i + 31}`,
+        html_url: `https://github.com/test/repo/issues/${i + 31}`,
+      }));
+
+      // 1ページ目の応答（rel="next"リンク付き）
+      mockListForRepo.mockResolvedValueOnce({
+        data: firstPageIssues,
         headers: {
           etag: 'test-etag-123',
           'x-ratelimit-limit': '5000',
           'x-ratelimit-remaining': '4999',
+          'x-ratelimit-reset': '1640000000',
+          link: '<https://api.github.com/repos/test/repo/issues?page=2>; rel="next"',
+        },
+      });
+
+      // 2ページ目の応答（rel="next"リンクなし）
+      mockListForRepo.mockResolvedValueOnce({
+        data: secondPageIssues,
+        headers: {
+          etag: 'test-etag-124',
+          'x-ratelimit-limit': '5000',
+          'x-ratelimit-remaining': '4998',
           'x-ratelimit-reset': '1640000000',
         },
       });
@@ -192,6 +229,8 @@ describe('GitHubService', () => {
 
       expect(result.issues).toHaveLength(30);
       expect(result.hasMore).toBe(true);
+      // linkヘッダーのrel="next"から次ページが存在することを確認
+      expect(result.etag).toBe('test-etag-123');
     });
 
     it('since パラメータを使用して増分同期できる', async () => {

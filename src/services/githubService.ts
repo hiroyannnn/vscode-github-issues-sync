@@ -72,16 +72,20 @@ export class GitHubService implements IGitHubService {
 
     // GitHubのIssueデータを内部モデルに変換
     type IssueData = (typeof response.data)[number];
-    const issues: Issue[] = response.data
-      .filter((issue: IssueData) => !('pull_request' in issue)) // Pull Requestを除外
+    const filteredIssues = response.data.filter((issue: IssueData) => !('pull_request' in issue)); // Pull Requestを除外
+    const issues: Issue[] = filteredIssues
       .slice(0, options.syncOptions.maxIssues) // maxIssuesでカット
       .map((issue: IssueData) => this.convertToIssue(issue));
+
+    // linkヘッダーから次ページの存在を判定（rel="next"が存在しているか）
+    const linkHeader = response.headers.link || '';
+    const hasNextPage = linkHeader.includes('rel="next"');
 
     return {
       issues,
       etag: response.headers.etag,
       rateLimit,
-      hasMore: response.data.length > options.syncOptions.maxIssues,
+      hasMore: hasNextPage || filteredIssues.length > options.syncOptions.maxIssues,
     };
   }
 

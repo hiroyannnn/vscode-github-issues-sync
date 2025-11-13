@@ -24,10 +24,14 @@ export const workspace = {
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ExtensionContext {
   secrets: SecretStorage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscriptions: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   workspaceState: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalState: any;
   extensionPath: string;
   storagePath?: string;
@@ -39,6 +43,7 @@ export interface SecretStorage {
   get(key: string): Thenable<string | undefined>;
   store(key: string, value: string): Thenable<void>;
   delete(key: string): Thenable<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onDidChange: any;
 }
 

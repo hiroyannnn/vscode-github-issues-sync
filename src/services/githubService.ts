@@ -74,7 +74,9 @@ export class GitHubService implements IGitHubService {
     }
 
     // ページネーションループで全データを取得
-    type IssueDataItem = Awaited<ReturnType<typeof octokit.rest.issues.listForRepo>>['data'][number];
+    type IssueDataItem = Awaited<
+      ReturnType<typeof octokit.rest.issues.listForRepo>
+    >['data'][number];
     const allIssues: IssueDataItem[] = [];
     let currentPage = 1;
     let hasMore = true;

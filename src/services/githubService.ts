@@ -94,6 +94,11 @@ export class GitHubService implements IGitHubService {
 
         const response = await octokit.rest.issues.listForRepo(params);
 
+        // ETag は最初のページでのみ使用し、以降のページでは削除
+        if (params.headers && 'If-None-Match' in params.headers) {
+          delete params.headers['If-None-Match'];
+        }
+
         // レスポンスヘッダーからRate Limit情報を抽出（毎回更新）
         latestRateLimit = {
           limit: parseInt(response.headers['x-ratelimit-limit'] || '5000', 10),
@@ -174,6 +179,7 @@ export class GitHubService implements IGitHubService {
       owner,
       repo,
       issue_number: issueNumber,
+      per_page: 100,
     });
 
     const issue = this.convertToIssue(issueResponse.data);

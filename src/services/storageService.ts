@@ -206,7 +206,7 @@ export class StorageService implements IStorageService {
     };
 
     // コメントをボディから抽出
-    const commentPattern = /### @(\w+) - ([\d-T:Z]+)\n\n([\s\S]*?)(?=\n### @|\n\n$|$)/g;
+    const commentPattern = /### @([\w-]+) - ([\d-T:Z]+)\n\n([\s\S]*?)(?=\n### @|\n\n$|$)/g;
     const comments: Issue['comments'] = [];
     let match;
 

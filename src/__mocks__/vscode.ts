@@ -6,12 +6,24 @@ export const authentication = {
   getSession: jest.fn(),
 };
 
+export const commands = {
+  registerCommand: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  executeCommand: jest.fn(),
+};
+
 export const window = {
   showErrorMessage: jest.fn(),
   showInformationMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   withProgress: jest.fn(),
+  registerTreeDataProvider: jest.fn(),
 };
+
+export enum ProgressLocation {
+  SourceControl = 1,
+  Window = 10,
+  Notification = 15,
+}
 
 export const workspace = {
   getConfiguration: jest.fn(),
@@ -25,11 +37,14 @@ export const workspace = {
 };
 
 export class Uri {
-  static file(path: string): Uri {
-    return new Uri(path);
+  static file(filePath: string): Uri {
+    return new Uri(filePath, filePath);
   }
 
-  constructor(public readonly path: string) {}
+  constructor(
+    public readonly path: string,
+    public readonly fsPath: string = path
+  ) {}
 }
 
 export class ThemeColor {

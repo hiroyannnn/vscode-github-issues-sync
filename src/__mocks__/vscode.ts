@@ -61,10 +61,7 @@ export class TreeItem {
     arguments?: unknown[];
   };
 
-  constructor(
-    label: string,
-    _collapsibleState?: TreeItemCollapsibleState
-  ) {
+  constructor(label: string, _collapsibleState?: TreeItemCollapsibleState) {
     this.label = label;
   }
 }

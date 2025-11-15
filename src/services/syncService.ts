@@ -229,13 +229,15 @@ export class SyncService implements ISyncService {
 
       // 同期状態を更新
       if (!this.cancelled) {
+        const mergedSyncIds = new Set([
+          ...(syncState?.syncedIssueIds ?? []),
+          ...issues.map((issue) => issue.id),
+        ]);
+
         const newSyncState: SyncState = {
           lastSyncTime: new Date().toISOString(),
           lastETag: fetchResult.etag,
-          syncedIssueIds: [
-            ...(syncState?.syncedIssueIds || []),
-            ...issues.map((issue) => issue.id),
-          ],
+          syncedIssueIds: Array.from(mergedSyncIds),
         };
 
         await this.storageService.saveSyncState(newSyncState, this.storageDir);

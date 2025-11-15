@@ -112,7 +112,6 @@ export class GitHubService implements IGitHubService {
 
         // maxIssuesに達したら停止
         if (allIssues.length >= options.syncOptions.maxIssues) {
-          hasMore = true; // さらにデータがある可能性
           break;
         }
 
@@ -126,10 +125,16 @@ export class GitHubService implements IGitHubService {
         // 304 Not Modifiedエラーを処理（Octokitが例外をスロー）
         // キャッシュされたデータが有効な場合は、ETagを保持して空の結果を返す
         if (error instanceof RequestError && error.status === 304) {
+          // 304 レスポンスのレート制限ヘッダーを抽出
+          const headers = error.response?.headers ?? {};
           return {
             issues: [],
             etag: latestEtag,
-            rateLimit: latestRateLimit,
+            rateLimit: {
+              limit: parseInt(headers['x-ratelimit-limit'] ?? '5000', 10),
+              remaining: parseInt(headers['x-ratelimit-remaining'] ?? '0', 10),
+              reset: new Date(parseInt(headers['x-ratelimit-reset'] ?? '0', 10) * 1000),
+            },
             hasMore: false,
           };
         }

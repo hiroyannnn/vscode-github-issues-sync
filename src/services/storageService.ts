@@ -262,7 +262,7 @@ export class StorageService implements IStorageService {
     };
 
     // コメントをボディから抽出
-    // GitHub のユーザー名規則: 英数字と単一のハイフン、数字で始まることはできない
+    // GitHub のユーザー名規則: 英数字とハイフン（連続不可、先頭・末尾不可）
     const commentPattern =
       /### @([A-Za-z0-9](?:-?[A-Za-z0-9])*) - ([\d-T:Z]+)\n\n([\s\S]*?)(?=\n### @|\n\n$|$)/g;
     const comments: Issue['comments'] = [];

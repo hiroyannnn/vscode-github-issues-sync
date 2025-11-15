@@ -3,6 +3,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
+import { RequestError } from '@octokit/request-error';
 import {
   IGitHubService,
   FetchOptions,
@@ -106,9 +107,8 @@ export class GitHubService implements IGitHubService {
         const filteredIssues = response.data.filter((issue) => !('pull_request' in issue));
         allIssues.push(...filteredIssues);
 
-        // 次ページがあるかをlinkヘッダーで判定
-        const linkHeader = response.headers.link || '';
-        hasMore = linkHeader.includes('rel="next"');
+        // 次ページがあるかをLink ヘッダーで判定
+        hasMore = Boolean(response.headers.link && response.headers.link.includes('rel="next"'));
 
         // maxIssuesに達したら停止
         if (allIssues.length >= options.syncOptions.maxIssues) {
@@ -124,7 +124,8 @@ export class GitHubService implements IGitHubService {
         }
       } catch (error) {
         // 304 Not Modifiedエラーを処理（Octokitが例外をスロー）
-        if (error instanceof Error && error.message.includes('304')) {
+        // キャッシュされたデータが有効な場合は、ETagを保持して空の結果を返す
+        if (error instanceof RequestError && error.status === 304) {
           return {
             issues: [],
             etag: latestEtag,
@@ -163,16 +164,15 @@ export class GitHubService implements IGitHubService {
       issue_number: issueNumber,
     });
 
-    // コメントを取得
-    const commentsResponse = await octokit.rest.issues.listComments({
+    // すべてのコメントを取得（pagination対応）
+    const allComments = await octokit.paginate(octokit.rest.issues.listComments, {
       owner,
       repo,
       issue_number: issueNumber,
     });
 
     const issue = this.convertToIssue(issueResponse.data);
-    type CommentData = (typeof commentsResponse.data)[number];
-    issue.comments = commentsResponse.data.map((comment: CommentData) => ({
+    issue.comments = allComments.map((comment) => ({
       id: comment.id,
       user: {
         login: comment.user?.login || 'unknown',

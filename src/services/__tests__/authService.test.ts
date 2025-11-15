@@ -5,6 +5,9 @@
 import { AuthService } from '../authService';
 import { IAuthService } from '../interfaces/IAuthService';
 import * as vscode from 'vscode';
+import { Octokit } from '@octokit/rest';
+
+jest.mock('@octokit/rest');
 
 describe('AuthService', () => {
   let authService: IAuthService;
@@ -106,10 +109,54 @@ describe('AuthService', () => {
 
   describe('validateToken', () => {
     it('有効なトークンの場合trueを返す', async () => {
-      // 実際のGitHub APIを呼び出すため、モック化が必要
-      // ここでは簡易的にtrueを返すテストとする
+      const mockGetAuthenticated = jest.fn().mockResolvedValue({});
+      (Octokit as unknown as jest.Mock).mockImplementation(() => ({
+        rest: {
+          users: {
+            getAuthenticated: mockGetAuthenticated,
+          },
+        },
+      }));
+
       const result = await authService.validateToken('valid-token');
-      expect(typeof result).toBe('boolean');
+
+      expect(result).toBe(true);
+      expect(Octokit).toHaveBeenCalledWith({ auth: 'valid-token' });
+      expect(mockGetAuthenticated).toHaveBeenCalled();
+    });
+
+    it('無効なトークン（401エラー）の場合falseを返す', async () => {
+      const mockError = new Error('Bad credentials');
+      const mockGetAuthenticated = jest.fn().mockRejectedValue(mockError);
+      (Octokit as unknown as jest.Mock).mockImplementation(() => ({
+        rest: {
+          users: {
+            getAuthenticated: mockGetAuthenticated,
+          },
+        },
+      }));
+
+      const result = await authService.validateToken('invalid-token');
+
+      expect(result).toBe(false);
+      expect(Octokit).toHaveBeenCalledWith({ auth: 'invalid-token' });
+      expect(mockGetAuthenticated).toHaveBeenCalled();
+    });
+
+    it('ネットワークエラーの場合falseを返す', async () => {
+      const mockError = new Error('Network error');
+      const mockGetAuthenticated = jest.fn().mockRejectedValue(mockError);
+      (Octokit as unknown as jest.Mock).mockImplementation(() => ({
+        rest: {
+          users: {
+            getAuthenticated: mockGetAuthenticated,
+          },
+        },
+      }));
+
+      const result = await authService.validateToken('some-token');
+
+      expect(result).toBe(false);
     });
   });
 
@@ -117,6 +164,24 @@ describe('AuthService', () => {
     it('SecretStorageからトークンを削除する', async () => {
       await authService.clearToken();
       expect(mockSecretStorage.delete).toHaveBeenCalledWith('github-pat');
+    });
+  });
+
+  describe('storeToken', () => {
+    it('Personal Access TokenをSecretStorageに保存する', async () => {
+      const token = 'new-pat-token-123';
+
+      await authService.storeToken(token);
+
+      expect(mockSecretStorage.store).toHaveBeenCalledWith('github-pat', token);
+    });
+
+    it('複数回呼び出された場合、最後の値で上書きされる', async () => {
+      await authService.storeToken('first-token');
+      await authService.storeToken('second-token');
+
+      expect(mockSecretStorage.store).toHaveBeenCalledTimes(2);
+      expect(mockSecretStorage.store).toHaveBeenLastCalledWith('github-pat', 'second-token');
     });
   });
 });

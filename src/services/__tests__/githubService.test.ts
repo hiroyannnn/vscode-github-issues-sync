@@ -48,6 +48,11 @@ describe('GitHubService', () => {
             get: mockGetRateLimit,
           },
         },
+        paginate: jest.fn(async (fn, options) => {
+          // paginateの第1引数がメソッドの場合、直接呼び出して結果を返す
+          const result = await fn(options);
+          return Array.isArray(result) ? result : result.data || [];
+        }),
       } as unknown as Octokit;
     });
 
@@ -143,7 +148,8 @@ describe('GitHubService', () => {
         type: 'vscode',
       });
 
-      const mockIssues = Array.from({ length: 50 }, (_, i) => ({
+      // 最初のページ: 30個のIssue（per_page=30で1ページ目）
+      const firstPageIssues = Array.from({ length: 30 }, (_, i) => ({
         id: i + 1,
         number: i + 1,
         title: `Issue ${i + 1}`,
@@ -165,12 +171,48 @@ describe('GitHubService', () => {
         html_url: `https://github.com/test/repo/issues/${i + 1}`,
       }));
 
-      mockListForRepo.mockResolvedValue({
-        data: mockIssues,
+      // 2ページ目: 20個のIssue（rel="next"リンク付き）
+      const secondPageIssues = Array.from({ length: 20 }, (_, i) => ({
+        id: i + 31,
+        number: i + 31,
+        title: `Issue ${i + 31}`,
+        body: 'Test body',
+        state: 'open',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-02T00:00:00Z',
+        closed_at: null,
+        user: {
+          login: 'testuser',
+          id: 100,
+          avatar_url: 'https://example.com/avatar.png',
+          url: 'https://api.github.com/users/testuser',
+        },
+        assignees: [],
+        labels: [],
+        milestone: null,
+        url: `https://api.github.com/repos/test/repo/issues/${i + 31}`,
+        html_url: `https://github.com/test/repo/issues/${i + 31}`,
+      }));
+
+      // 1ページ目の応答（rel="next"リンク付き）
+      mockListForRepo.mockResolvedValueOnce({
+        data: firstPageIssues,
         headers: {
           etag: 'test-etag-123',
           'x-ratelimit-limit': '5000',
           'x-ratelimit-remaining': '4999',
+          'x-ratelimit-reset': '1640000000',
+          link: '<https://api.github.com/repos/test/repo/issues?page=2>; rel="next"',
+        },
+      });
+
+      // 2ページ目の応答（rel="next"リンクなし）
+      mockListForRepo.mockResolvedValueOnce({
+        data: secondPageIssues,
+        headers: {
+          etag: 'test-etag-124',
+          'x-ratelimit-limit': '5000',
+          'x-ratelimit-remaining': '4998',
           'x-ratelimit-reset': '1640000000',
         },
       });
@@ -192,6 +234,95 @@ describe('GitHubService', () => {
 
       expect(result.issues).toHaveLength(30);
       expect(result.hasMore).toBe(true);
+      // linkヘッダーのrel="next"から次ページが存在することを確認
+      expect(result.etag).toBe('test-etag-123');
+    });
+
+    it('Pull Request を除外できる', async () => {
+      mockAuthService.getToken.mockResolvedValue({
+        token: 'test-token',
+        type: 'vscode',
+      });
+
+      const mockIssuesWithPR = [
+        {
+          id: 1,
+          number: 1,
+          title: 'Regular Issue',
+          body: 'Test body',
+          state: 'open',
+          created_at: '2023-01-01T00:00:00Z',
+          updated_at: '2023-01-02T00:00:00Z',
+          closed_at: null,
+          user: {
+            login: 'testuser',
+            id: 100,
+            avatar_url: 'https://example.com/avatar.png',
+            url: 'https://api.github.com/users/testuser',
+          },
+          assignees: [],
+          labels: [],
+          milestone: null,
+          url: 'https://api.github.com/repos/test/repo/issues/1',
+          html_url: 'https://github.com/test/repo/issues/1',
+        },
+        {
+          id: 2,
+          number: 2,
+          title: 'Pull Request',
+          body: 'PR body',
+          state: 'open',
+          created_at: '2023-01-01T00:00:00Z',
+          updated_at: '2023-01-02T00:00:00Z',
+          closed_at: null,
+          pull_request: {
+            url: 'https://api.github.com/repos/test/repo/pulls/2',
+            html_url: 'https://github.com/test/repo/pull/2',
+            diff_url: 'https://github.com/test/repo/pull/2.diff',
+            patch_url: 'https://github.com/test/repo/pull/2.patch',
+          },
+          user: {
+            login: 'testuser',
+            id: 100,
+            avatar_url: 'https://example.com/avatar.png',
+            url: 'https://api.github.com/users/testuser',
+          },
+          assignees: [],
+          labels: [],
+          milestone: null,
+          url: 'https://api.github.com/repos/test/repo/issues/2',
+          html_url: 'https://github.com/test/repo/pull/2',
+        },
+      ];
+
+      mockListForRepo.mockResolvedValue({
+        data: mockIssuesWithPR,
+        headers: {
+          etag: 'test-etag-123',
+          'x-ratelimit-limit': '5000',
+          'x-ratelimit-remaining': '4999',
+          'x-ratelimit-reset': '1640000000',
+        },
+      });
+
+      const options: FetchOptions = {
+        owner: 'test',
+        repo: 'repo',
+        syncOptions: {
+          maxIssues: 100,
+          syncPeriod: '6months',
+          includeClosedIssues: true,
+          syncStrategy: 'full',
+          labelFilter: [],
+          milestoneFilter: [],
+        },
+      };
+
+      const result = await githubService.fetchIssues(options);
+
+      expect(result.issues).toHaveLength(1);
+      expect(result.issues[0].title).toBe('Regular Issue');
+      expect(result.issues[0].number).toBe(1);
     });
 
     it('since パラメータを使用して増分同期できる', async () => {

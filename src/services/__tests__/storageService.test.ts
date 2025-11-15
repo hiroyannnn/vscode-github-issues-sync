@@ -100,8 +100,9 @@ describe('StorageService', () => {
       const markdown = storageService.toMarkdown(mockIssue);
 
       expect(markdown).toContain('labels:');
-      expect(markdown).toContain('- bug');
-      expect(markdown).toContain('milestone: v1.0');
+      expect(markdown).toContain('name: bug');
+      expect(markdown).toContain('color: red');
+      expect(markdown).toContain('title: v1.0');
     });
   });
 

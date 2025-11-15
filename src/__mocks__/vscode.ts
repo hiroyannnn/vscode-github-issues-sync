@@ -70,14 +70,16 @@ export class TreeItem {
   tooltip?: string;
   contextValue?: string;
   iconPath?: ThemeIcon;
+  collapsibleState?: TreeItemCollapsibleState;
   command?: {
     command: string;
     title: string;
     arguments?: unknown[];
   };
 
-  constructor(label: string, _collapsibleState?: TreeItemCollapsibleState) {
+  constructor(label: string, collapsibleState?: TreeItemCollapsibleState) {
     this.label = label;
+    this.collapsibleState = collapsibleState;
   }
 }
 

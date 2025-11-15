@@ -48,6 +48,11 @@ describe('GitHubService', () => {
             get: mockGetRateLimit,
           },
         },
+        paginate: jest.fn(async (fn, options) => {
+          // paginateの第1引数がメソッドの場合、直接呼び出して結果を返す
+          const result = await fn(options);
+          return Array.isArray(result) ? result : result.data || [];
+        }),
       } as unknown as Octokit;
     });
 

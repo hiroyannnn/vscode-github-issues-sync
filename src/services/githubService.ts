@@ -3,6 +3,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
+import { RequestError } from '@octokit/request-error';
 import {
   IGitHubService,
   FetchOptions,
@@ -93,6 +94,11 @@ export class GitHubService implements IGitHubService {
 
         const response = await octokit.rest.issues.listForRepo(params);
 
+        // ETag は最初のページでのみ使用し、以降のページでは削除
+        if (params.headers && 'If-None-Match' in params.headers) {
+          delete params.headers['If-None-Match'];
+        }
+
         // レスポンスヘッダーからRate Limit情報を抽出（毎回更新）
         latestRateLimit = {
           limit: parseInt(response.headers['x-ratelimit-limit'] || '5000', 10),
@@ -106,13 +112,11 @@ export class GitHubService implements IGitHubService {
         const filteredIssues = response.data.filter((issue) => !('pull_request' in issue));
         allIssues.push(...filteredIssues);
 
-        // 次ページがあるかをlinkヘッダーで判定
-        const linkHeader = response.headers.link || '';
-        hasMore = linkHeader.includes('rel="next"');
+        // 次ページがあるかをLink ヘッダーで判定
+        hasMore = Boolean(response.headers.link && response.headers.link.includes('rel="next"'));
 
         // maxIssuesに達したら停止
         if (allIssues.length >= options.syncOptions.maxIssues) {
-          hasMore = true; // さらにデータがある可能性
           break;
         }
 
@@ -124,11 +128,18 @@ export class GitHubService implements IGitHubService {
         }
       } catch (error) {
         // 304 Not Modifiedエラーを処理（Octokitが例外をスロー）
-        if (error instanceof Error && error.message.includes('304')) {
+        // キャッシュされたデータが有効な場合は、ETagを保持して空の結果を返す
+        if (error instanceof RequestError && error.status === 304) {
+          // 304 レスポンスのレート制限ヘッダーを抽出
+          const headers = error.response?.headers ?? {};
           return {
             issues: [],
             etag: latestEtag,
-            rateLimit: latestRateLimit,
+            rateLimit: {
+              limit: parseInt(headers['x-ratelimit-limit'] ?? '5000', 10),
+              remaining: parseInt(headers['x-ratelimit-remaining'] ?? '0', 10),
+              reset: new Date(parseInt(headers['x-ratelimit-reset'] ?? '0', 10) * 1000),
+            },
             hasMore: false,
           };
         }
@@ -163,16 +174,16 @@ export class GitHubService implements IGitHubService {
       issue_number: issueNumber,
     });
 
-    // コメントを取得
-    const commentsResponse = await octokit.rest.issues.listComments({
+    // すべてのコメントを取得（pagination対応）
+    const allComments = await octokit.paginate(octokit.rest.issues.listComments, {
       owner,
       repo,
       issue_number: issueNumber,
+      per_page: 100,
     });
 
     const issue = this.convertToIssue(issueResponse.data);
-    type CommentData = (typeof commentsResponse.data)[number];
-    issue.comments = commentsResponse.data.map((comment: CommentData) => ({
+    issue.comments = allComments.map((comment) => ({
       id: comment.id,
       user: {
         login: comment.user?.login || 'unknown',

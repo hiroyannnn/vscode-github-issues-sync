@@ -102,6 +102,27 @@ export class StorageService implements IStorageService {
    * IssueをMarkdown形式に変換
    */
   toMarkdown(issue: Issue): string {
+    // ラベル情報を完全形式で保存
+    const labelsData = issue.labels.map((label) => ({
+      id: label.id,
+      name: label.name,
+      color: label.color,
+      ...(label.description ? { description: label.description } : {}),
+    }));
+
+    // マイルストーン情報を完全形式で保存
+    const milestoneData = issue.milestone
+      ? {
+          id: issue.milestone.id,
+          number: issue.milestone.number,
+          title: issue.milestone.title,
+          ...(issue.milestone.description ? { description: issue.milestone.description } : {}),
+          state: issue.milestone.state,
+          ...(issue.milestone.due_on ? { due_on: issue.milestone.due_on } : {}),
+          url: issue.milestone.url,
+        }
+      : undefined;
+
     // Front matterデータを構築（undefinedを除外）
     const frontMatter: Record<string, unknown> = {
       id: issue.id,
@@ -112,7 +133,7 @@ export class StorageService implements IStorageService {
       updated_at: issue.updated_at,
       author: issue.author,
       assignees: issue.assignees,
-      labels: issue.labels.map((label) => label.name),
+      labels: labelsData,
       url: issue.url,
       html_url: issue.html_url,
     };
@@ -121,8 +142,8 @@ export class StorageService implements IStorageService {
     if (issue.closed_at) {
       frontMatter.closed_at = issue.closed_at;
     }
-    if (issue.milestone) {
-      frontMatter.milestone = issue.milestone.title;
+    if (milestoneData) {
+      frontMatter.milestone = milestoneData;
     }
 
     // Markdownボディを構築
@@ -175,6 +196,54 @@ export class StorageService implements IStorageService {
   fromMarkdown(markdown: string): Issue {
     const { data, content } = matter(markdown);
 
+    // ラベル情報を復元（完全なオブジェクト形式に対応）
+    let labels: Issue['labels'] = [];
+    if (data.labels) {
+      if (Array.isArray(data.labels)) {
+        labels = data.labels.map((label: Record<string, unknown> | string) => {
+          if (typeof label === 'string') {
+            return {
+              id: 0,
+              name: label,
+              color: '',
+              description: undefined,
+            };
+          }
+          return {
+            id: (label.id as number) || 0,
+            name: (label.name as string) || '',
+            color: (label.color as string) || '',
+            description: (label.description as string) || undefined,
+          };
+        });
+      }
+    }
+
+    // マイルストーン情報を復元（完全なオブジェクト形式に対応）
+    let milestone: Issue['milestone'] = undefined;
+    if (data.milestone) {
+      if (typeof data.milestone === 'string') {
+        milestone = {
+          id: 0,
+          number: 0,
+          title: data.milestone,
+          state: 'open',
+          url: '',
+        };
+      } else {
+        const m = data.milestone as Record<string, unknown>;
+        milestone = {
+          id: (m.id as number) || 0,
+          number: (m.number as number) || 0,
+          title: (m.title as string) || '',
+          description: (m.description as string) || undefined,
+          state: (m.state as 'open' | 'closed') || 'open',
+          due_on: (m.due_on as string) || undefined,
+          url: (m.url as string) || '',
+        };
+      }
+    }
+
     // Front matterから基本情報を復元
     const issue: Issue = {
       id: data.id as number,
@@ -186,27 +255,16 @@ export class StorageService implements IStorageService {
       closed_at: data.closed_at as string | undefined,
       author: data.author as Issue['author'],
       assignees: data.assignees as Issue['assignees'],
-      labels: (data.labels as string[]).map((name, index) => ({
-        id: index,
-        name,
-        color: '',
-        description: undefined,
-      })),
-      milestone: data.milestone
-        ? {
-            id: 0,
-            number: 0,
-            title: data.milestone as string,
-            state: 'open',
-            url: '',
-          }
-        : undefined,
+      labels,
+      milestone,
       url: data.url as string,
       html_url: data.html_url as string,
     };
 
     // コメントをボディから抽出
-    const commentPattern = /### @([\w-]+) - ([\d-T:Z]+)\n\n([\s\S]*?)(?=\n### @|\n\n$|$)/g;
+    // GitHub のユーザー名規則: 英数字とハイフン（連続不可、先頭・末尾不可）
+    const commentPattern =
+      /### @([A-Za-z0-9](?:-?[A-Za-z0-9])*) - ([\d-T:Z]+)\n\n([\s\S]*?)(?=\n### @|\n\n$|$)/g;
     const comments: Issue['comments'] = [];
     let match;
 

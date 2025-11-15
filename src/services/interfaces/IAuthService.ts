@@ -24,4 +24,10 @@ export interface IAuthService {
    * トークンをクリア（ログアウト）
    */
   clearToken(): Promise<void>;
+
+  /**
+   * Personal Access Token をセキュアストレージに保存
+   * @param token 保存するトークン
+   */
+  storeToken(token: string): Promise<void>;
 }

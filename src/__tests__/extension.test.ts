@@ -73,6 +73,18 @@ describe('Extension', () => {
     // IssuesTreeProviderのモック設定
     const mockTreeProvider = IssuesTreeProvider as jest.MockedClass<typeof IssuesTreeProvider>;
     mockTreeProvider.prototype.loadIssues = jest.fn().mockResolvedValue(undefined);
+
+    // workspace.getConfigurationのモック設定
+    const mockConfig = {
+      get: jest.fn((key: string, defaultValue?: unknown) => {
+        if (key === 'enableAutoSync') return false;
+        if (key === 'syncInterval') return 15;
+        if (key === 'maxIssues') return 100;
+        if (key === 'includeClosedIssues') return false;
+        return defaultValue;
+      }),
+    };
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
   });
 
   describe('activate', () => {
@@ -159,6 +171,49 @@ describe('Extension', () => {
         'workbench.action.openSettings',
         'githubIssuesSync'
       );
+    });
+  });
+
+  describe('auto sync', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('自動同期が有効な場合、タイマーが開始される', async () => {
+      // enableAutoSyncをtrueに設定
+      const mockConfig = {
+        get: jest.fn((key: string, defaultValue?: unknown) => {
+          if (key === 'enableAutoSync') return true;
+          if (key === 'syncInterval') return 15;
+          return defaultValue;
+        }),
+      };
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
+
+      await activate(mockContext);
+
+      // setIntervalが呼ばれたことを確認
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
+    });
+
+    it('自動同期が無効な場合、タイマーが開始されない', async () => {
+      // enableAutoSyncをfalseに設定
+      const mockConfig = {
+        get: jest.fn((key: string, defaultValue?: unknown) => {
+          if (key === 'enableAutoSync') return false;
+          return defaultValue;
+        }),
+      };
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
+
+      await activate(mockContext);
+
+      // setIntervalが呼ばれていないことを確認
+      expect(jest.getTimerCount()).toBe(0);
     });
   });
 });

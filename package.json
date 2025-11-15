@@ -47,9 +47,9 @@
     "configuration": {
       "title": "GitHub Issues Sync",
       "properties": {
-        "githubIssuesSync.autoSync": {
+        "githubIssuesSync.enableAutoSync": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable automatic synchronization"
         },
         "githubIssuesSync.syncInterval": {

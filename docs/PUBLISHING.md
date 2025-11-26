@@ -54,6 +54,8 @@ npm run compile
   "description": "Sync GitHub Issues to local Markdown files for AI agents and offline access",
   "version": "0.1.0",
   "publisher": "あなたのpublisher名",
+  "license": "MIT",
+  "homepage": "https://github.com/hiroyannnn/vscode-github-issues-sync",
   "repository": {
     "type": "git",
     "url": "https://github.com/hiroyannnn/vscode-github-issues-sync.git"
@@ -61,8 +63,6 @@ npm run compile
   "bugs": {
     "url": "https://github.com/hiroyannnn/vscode-github-issues-sync/issues"
   },
-  "license": "MIT",
-  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -110,29 +110,26 @@ Marketplace に表示される README.md を整備：
 
 ### 3. .vscodeignore の設定
 
-パッケージに含めないファイルを指定：
+パッケージに含めないファイルを指定（.vscodeignore ファイル）：
 
 ```
-.vscode/**
-.vscode-test/**
-src/**
-.gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
-**/*.ts
-!dist/**/*.js
-node_modules/**
-.github/**
-*.vsix
-**/__tests__/**
-**/__mocks__/**
-coverage/**
-jest.config.js
-.prettierrc
+**/*.test.ts
+**/*.test.js
+src/
+.github/
+docs/
+node_modules/
+dist/
+out/
+.vscode/
 webpack.config.js
+tsconfig.json
+jest.config.js
+.eslintrc.json
+.prettierrc
+.prettierignore
+.gitignore
+*.md
 ```
 
 ### 4. LICENSE ファイルの確認

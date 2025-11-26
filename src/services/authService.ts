@@ -6,9 +6,19 @@ import * as vscode from 'vscode';
 import { IAuthService, AuthToken } from './interfaces/IAuthService';
 import { Octokit } from '@octokit/rest';
 
+/**
+ * GitHub認証を管理するサービス
+ * VS Code標準認証、設定ファイルのPAT、SecretStorageを順に試行し、
+ * GitHub APIへのアクセストークンを提供する
+ */
 export class AuthService implements IAuthService {
   private readonly SECRET_KEY = 'github-pat';
 
+  /**
+   * AuthServiceのコンストラクタ
+   *
+   * @param context VS Code拡張機能のコンテキスト（SecretStorage アクセスに使用）
+   */
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   /**

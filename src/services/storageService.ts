@@ -9,6 +9,11 @@ import matter from 'gray-matter';
 import { IStorageService } from './interfaces/IStorageService';
 import { Issue, SyncState } from '../models/issue';
 
+/**
+ * GitHub Issueをローカルファイルシステムに保存・読み込みするサービス
+ * IssueをMarkdown形式で保存し、YAML front matter にメタデータを含める
+ * SHA-256ハッシングで変更検知を行い、同期の効率化を実現
+ */
 export class StorageService implements IStorageService {
   /**
    * Issueをローカルに保存

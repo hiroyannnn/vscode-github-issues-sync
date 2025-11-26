@@ -331,7 +331,11 @@ export class SyncService implements ISyncService {
           message: 'Lazy sync (metadata only)',
         });
         // メタデータのみの同期を実行
-        return this.incrementalSync(repoInfo, { ...options, syncStrategy: 'incremental' }, onProgress);
+        return this.incrementalSync(
+          repoInfo,
+          { ...options, syncStrategy: 'incremental' },
+          onProgress
+        );
       default:
         return this.sync(repoInfo, options, onProgress);
     }

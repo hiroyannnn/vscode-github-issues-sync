@@ -38,9 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
       raw.startsWith('~') && (raw.length === 1 || raw[1] === '/' || raw[1] === '\\')
         ? path.join(os.homedir(), raw.slice(1))
         : raw;
-    return path.isAbsolute(expanded)
-      ? expanded
-      : path.join(workspaceFolder.uri.fsPath, expanded);
+    return path.isAbsolute(expanded) ? expanded : path.join(workspaceFolder.uri.fsPath, expanded);
   };
 
   // Tree View Providerの初期化
@@ -104,8 +102,12 @@ export async function activate(context: vscode.ExtensionContext) {
         syncPeriod: (syncPeriodStr as '6months' | '3months' | '1year' | 'all') || '6months',
         includeClosedIssues: config.get<boolean>('includeClosedIssues', false),
         syncStrategy: (syncStrategyStr as 'incremental' | 'full' | 'lazy') || 'incremental',
-        labelFilter: (config.get<string[]>('labelFilter', []) ?? []).filter((label) => !!label?.trim()),
-        milestoneFilter: (config.get<string[]>('milestoneFilter', []) ?? []).filter((m) => !!m?.trim()),
+        labelFilter: (config.get<string[]>('labelFilter', []) ?? []).filter(
+          (label) => !!label?.trim()
+        ),
+        milestoneFilter: (config.get<string[]>('milestoneFilter', []) ?? []).filter(
+          (m) => !!m?.trim()
+        ),
       };
 
       // SyncServiceの初期化
@@ -126,12 +128,16 @@ export async function activate(context: vscode.ExtensionContext) {
             });
 
             // 同期実行
-            const result = await syncService.syncWithStrategy(repoInfo, syncOptions, (progressInfo) => {
-              progress.report({
-                message: progressInfo.message,
-                increment: progressInfo.total > 0 ? 100 / progressInfo.total : 0,
-              });
-            });
+            const result = await syncService.syncWithStrategy(
+              repoInfo,
+              syncOptions,
+              (progressInfo) => {
+                progress.report({
+                  message: progressInfo.message,
+                  increment: progressInfo.total > 0 ? 100 / progressInfo.total : 0,
+                });
+              }
+            );
 
             // 結果表示
             if (result.success) {

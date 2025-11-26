@@ -314,7 +314,9 @@ export class StorageService implements IStorageService {
       }
 
       // APIがコメントを返さない場合、既存コメントを使用して比較
-      const candidate = issue.comments?.length ? issue : { ...issue, comments: existingIssue.comments };
+      const candidate = issue.comments?.length
+        ? issue
+        : { ...issue, comments: existingIssue.comments };
 
       // 新旧のMarkdownをハッシュ化して比較
       const newHash = this.calculateHash(this.toMarkdown(candidate));

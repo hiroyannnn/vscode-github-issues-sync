@@ -43,6 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Tree View Providerの初期化
   let treeProvider: IssuesTreeProvider | undefined;
+  let treeViewDisposable: vscode.Disposable | undefined;
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
     const workspaceFolder = vscode.workspace.workspaceFolders[0];
     const config = vscode.workspace.getConfiguration('githubIssuesSync');
@@ -50,8 +51,8 @@ export async function activate(context: vscode.ExtensionContext) {
     treeProvider = new IssuesTreeProvider(storageService, storagePath);
 
     // Tree Viewの登録
-    const treeView = vscode.window.registerTreeDataProvider('githubIssuesView', treeProvider);
-    context.subscriptions.push(treeView);
+    treeViewDisposable = vscode.window.registerTreeDataProvider('githubIssuesView', treeProvider);
+    context.subscriptions.push(treeViewDisposable);
 
     // 初期ロード
     await treeProvider.loadIssues();
@@ -238,12 +239,20 @@ export async function activate(context: vscode.ExtensionContext) {
     if (e.affectsConfiguration('githubIssuesSync.storageDirectory')) {
       console.log('GitHub Issues Sync: Storage directory changed, reinitializing tree provider');
       if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        // 古いTree Viewの登録を削除
+        if (treeViewDisposable) {
+          treeViewDisposable.dispose();
+        }
+
         const workspaceFolder = vscode.workspace.workspaceFolders[0];
         const config = vscode.workspace.getConfiguration('githubIssuesSync');
         const storagePath = resolveStoragePath(workspaceFolder, config);
         treeProvider = new IssuesTreeProvider(storageService, storagePath);
-        const treeView = vscode.window.registerTreeDataProvider('githubIssuesView', treeProvider);
-        context.subscriptions.push(treeView);
+        treeViewDisposable = vscode.window.registerTreeDataProvider(
+          'githubIssuesView',
+          treeProvider
+        );
+        context.subscriptions.push(treeViewDisposable);
         treeProvider.loadIssues().catch((e) => console.error('Failed to load issues:', e));
       }
     }

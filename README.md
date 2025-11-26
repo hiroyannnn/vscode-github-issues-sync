@@ -10,7 +10,7 @@ VS Code拡張機能で、GitHubのIssueをローカルに同期し、AIコード
 - **Tree View**: VS CodeのサイドバーでIssueを一覧表示、クリックで詳細を開く
 - **認証**: VS Code標準のGitHub認証をサポート（PATフォールバック対応）
 - **オフライン対応**: 同期後はネットワーク接続なしでIssueを参照可能
-- **検索・フィルタ**: Open/Closed Issue、ラベル、マイルストーンでフィルタリング
+- **フィルタリング**: Issue状態、ラベル、マイルストーン、期間での柔軟なフィルタリング
 
 ## インストール
 
@@ -59,10 +59,10 @@ F5キーを押してExtension Development Hostを起動します。
 
 ### 同期されたファイル
 
-同期されたIssueは `.github-issues/` ディレクトリに保存されます：
+同期されたIssueはデフォルトで `.vscode/github-issues/` ディレクトリに保存されます（設定で変更可能）：
 
 ```
-.github-issues/
+.vscode/github-issues/
 ├── issue-1.md
 ├── issue-2.md
 └── ...
@@ -124,6 +124,47 @@ Issue本文がここに表示されます。
 - **型**: `boolean`
 - **デフォルト**: `false`
 - **説明**: Closed Issueも同期対象に含める
+
+### `githubIssuesSync.syncPeriod`
+
+- **型**: `string`
+- **デフォルト**: `6months`
+- **選択肢**: `3months` | `6months` | `1year` | `all`
+- **説明**: 同期対象のIssue期間を指定
+
+### `githubIssuesSync.syncStrategy`
+
+- **型**: `string`
+- **デフォルト**: `incremental`
+- **選択肢**: `full` | `incremental` | `lazy`
+- **説明**:
+  - `full`: 毎回すべてのIssueを同期
+  - `incremental`: 前回同期以降の変更のみを同期
+  - `lazy`: メタデータのみ同期、詳細は必要時に取得
+
+### `githubIssuesSync.labelFilter`
+
+- **型**: `array<string>`
+- **デフォルト**: `[]`
+- **説明**: 特定のラベルを持つIssueのみを同期（空配列で全ラベル）
+
+### `githubIssuesSync.milestoneFilter`
+
+- **型**: `array<string>`
+- **デフォルト**: `[]`
+- **説明**: 特定のマイルストーンを持つIssueのみを同期（空配列で全マイルストーン）
+
+### `githubIssuesSync.storageDirectory`
+
+- **型**: `string`
+- **デフォルト**: `.vscode/github-issues`
+- **説明**: Issueを保存するディレクトリ（相対パスはワークスペース基準、`~`で展開可能）
+
+### `githubIssuesSync.personalAccessToken`
+
+- **型**: `string`
+- **デフォルト**: `` (空文字)
+- **説明**: GitHub Personal Access Token（VS Code認証失敗時のフォールバック）
 
 ## コマンド
 

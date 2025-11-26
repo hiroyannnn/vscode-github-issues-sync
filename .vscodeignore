@@ -4,7 +4,6 @@ src/
 .github/
 docs/
 node_modules/
-dist/
 out/
 .vscode/
 webpack.config.js
@@ -15,3 +14,4 @@ jest.config.js
 .prettierignore
 .gitignore
 *.md
+!dist/extension.js

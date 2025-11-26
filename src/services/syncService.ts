@@ -7,10 +7,22 @@ import { IGitHubService } from './interfaces/IGitHubService';
 import { IStorageService } from './interfaces/IStorageService';
 import { Issue, RepositoryInfo, SyncOptions, SyncState } from '../models/issue';
 
+/**
+ * GitHub IssueをGitHubからローカルストレージに同期するサービス
+ * フル同期とインクリメンタル同期をサポートし、
+ * 同期進捗の報告、キャンセル機能、エラーハンドリングを提供する
+ */
 export class SyncService implements ISyncService {
   private syncing = false;
   private cancelled = false;
 
+  /**
+   * SyncServiceのコンストラクタ
+   *
+   * @param githubService GitHub APIアクセス用サービス
+   * @param storageService ローカルストレージサービス
+   * @param storageDir Issueを保存するディレクトリパス
+   */
   constructor(
     private readonly githubService: IGitHubService,
     private readonly storageService: IStorageService,

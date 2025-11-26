@@ -8,9 +8,16 @@ import { IssuesTreeProvider } from './views/issuesTreeProvider';
 import { GitUtils } from './utils/gitUtils';
 import { SyncOptions } from './models/issue';
 
-// 自動同期タイマーを保持
+/** 自動同期タイマーを保持するグローバル変数 */
 let autoSyncTimer: NodeJS.Timeout | undefined;
 
+/**
+ * VS Code拡張機能の活性化時に呼び出される
+ * 認証、ストレージ、GitHub API、同期サービスの初期化を行い、
+ * UI（Tree View）コマンド、自動同期タイマーをセットアップする
+ *
+ * @param context 拡張機能のコンテキスト
+ */
 export async function activate(context: vscode.ExtensionContext) {
   console.log('GitHub Issues Sync extension is now active');
 
@@ -39,7 +46,12 @@ export async function activate(context: vscode.ExtensionContext) {
     await treeProvider.loadIssues();
   }
 
-  // 共通の同期ロジック
+  /**
+   * GitHub Issuesの同期を実行する共通ロジック
+   * ワークスペースのGitリポジトリ情報を取得し、GitHubから最新のIssueを同期する
+   *
+   * @param showProgress 進捗表示を表示するか（true: 手動同期時、false: 自動同期時）
+   */
   const performSync = async (showProgress = true): Promise<void> => {
     try {
       // ワークスペースフォルダーの確認
@@ -155,7 +167,11 @@ export async function activate(context: vscode.ExtensionContext) {
     await vscode.commands.executeCommand('workbench.action.openSettings', 'githubIssuesSync');
   });
 
-  // 自動同期タイマーの開始/停止
+  /**
+   * 自動同期タイマーを開始する
+   * 設定値に基づいて指定した間隔でperformSyncを実行するタイマーを設定する
+   * 既存のタイマーがあればクリアしてから新しいタイマーを開始する
+   */
   const startAutoSync = () => {
     stopAutoSync(); // 既存のタイマーをクリア
 
@@ -176,6 +192,10 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   };
 
+  /**
+   * 自動同期タイマーを停止する
+   * アクティブなタイマーがあれば解放して停止する
+   */
   const stopAutoSync = () => {
     if (autoSyncTimer) {
       clearInterval(autoSyncTimer);
@@ -203,6 +223,10 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 }
 
+/**
+ * VS Code拡張機能の非活性化時に呼び出される
+ * 自動同期タイマーをクリーンアップし、リソースを解放する
+ */
 export function deactivate() {
   console.log('GitHub Issues Sync extension is now deactivated');
 

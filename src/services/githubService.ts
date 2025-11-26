@@ -13,9 +13,18 @@ import {
 import { IAuthService } from './interfaces/IAuthService';
 import { Issue } from '../models/issue';
 
+/**
+ * GitHub APIとの連携を管理するサービス
+ * Octokitを使用してIssueの取得、コメントの取得、レート制限情報の管理を行う
+ */
 export class GitHubService implements IGitHubService {
   private octokit?: Octokit;
 
+  /**
+   * GitHubServiceのコンストラクタ
+   *
+   * @param authService 認証トークン取得用のサービス
+   */
   constructor(private readonly authService: IAuthService) {}
 
   /**

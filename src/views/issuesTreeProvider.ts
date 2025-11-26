@@ -7,7 +7,18 @@ import * as path from 'path';
 import { Issue } from '../models/issue';
 import { IStorageService } from '../services/interfaces/IStorageService';
 
+/**
+ * VS Code Tree Viewの単一Issue項目を表現するクラス
+ * Issue情報をツリー項目として表示し、クリック時にIssueファイルを開くコマンドを設定する
+ */
 export class IssueTreeItem extends vscode.TreeItem {
+  /**
+   * IssueTreeItemのコンストラクタ
+   *
+   * @param issue Issue情報
+   * @param collapsibleState ツリー項目の展開/折りたたみ状態
+   * @param storagePath Issueファイルが保存されているディレクトリパス
+   */
   constructor(
     public readonly issue: Issue,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
@@ -61,6 +72,11 @@ export class IssueTreeItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * VS Code Tree ViewでGitHub Issuesを表示するプロバイダー
+ * ローカルストレージから読み込んだIssueをツリー形式で表示し、
+ * ユーザーが選択したIssueを開く機能を提供する
+ */
 export class IssuesTreeProvider implements vscode.TreeDataProvider<IssueTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<IssueTreeItem | undefined | null | void> =
     new vscode.EventEmitter<IssueTreeItem | undefined | null | void>();
@@ -69,6 +85,12 @@ export class IssuesTreeProvider implements vscode.TreeDataProvider<IssueTreeItem
 
   private issues: Issue[] = [];
 
+  /**
+   * IssuesTreeProviderのコンストラクタ
+   *
+   * @param storageService ローカルストレージサービス
+   * @param storagePath Issueファイルが保存されているディレクトリパス
+   */
   constructor(
     private readonly storageService: IStorageService,
     private readonly storagePath: string

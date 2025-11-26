@@ -30,6 +30,21 @@ export class SyncService implements ISyncService {
   ) {}
 
   /**
+   * 既存のコメントを復元するヘルパーメソッド
+   * GitHub APIがコメント本文を返さない場合、ローカル保存済みのコメントを復元する
+   */
+  private async resolveComments(issue: Issue): Promise<Issue> {
+    if (issue.comments?.length) {
+      return issue;
+    }
+    const existing = await this.storageService.loadIssue(issue.number, this.storageDir);
+    if (existing?.comments?.length) {
+      return { ...issue, comments: existing.comments };
+    }
+    return issue;
+  }
+
+  /**
    * Issueを同期
    */
   async sync(
@@ -86,11 +101,14 @@ export class SyncService implements ISyncService {
         const issue = issues[i];
 
         try {
+          // コメントを復元（APIが返さない場合、既存コメントを使用）
+          const preparedIssue = await this.resolveComments(issue);
+
           // 変更チェック
-          const changed = await this.storageService.hasChanged(issue, this.storageDir);
+          const changed = await this.storageService.hasChanged(preparedIssue, this.storageDir);
 
           if (changed) {
-            issuesToSave.push(issue);
+            issuesToSave.push(preparedIssue);
             result.syncedCount++;
           } else {
             result.skippedCount++;
@@ -207,11 +225,14 @@ export class SyncService implements ISyncService {
         const issue = issues[i];
 
         try {
+          // コメントを復元（APIが返さない場合、既存コメントを使用）
+          const preparedIssue = await this.resolveComments(issue);
+
           // 変更チェック
-          const changed = await this.storageService.hasChanged(issue, this.storageDir);
+          const changed = await this.storageService.hasChanged(preparedIssue, this.storageDir);
 
           if (changed) {
-            issuesToSave.push(issue);
+            issuesToSave.push(preparedIssue);
             result.syncedCount++;
           } else {
             result.skippedCount++;
@@ -285,6 +306,35 @@ export class SyncService implements ISyncService {
     await this.storageService.saveIssue(issue, this.storageDir);
 
     return issue;
+  }
+
+  /**
+   * 同期戦略に応じて同期を実行
+   */
+  async syncWithStrategy(
+    repoInfo: RepositoryInfo,
+    options: SyncOptions,
+    onProgress?: ProgressCallback
+  ): Promise<SyncResult> {
+    const strategy = options.syncStrategy;
+
+    switch (strategy) {
+      case 'full':
+        return this.sync(repoInfo, options, onProgress);
+      case 'incremental':
+        return this.incrementalSync(repoInfo, options, onProgress);
+      case 'lazy':
+        // lazy戦略は軽量同期（メタデータのみ）
+        onProgress?.({
+          total: 0,
+          current: 0,
+          message: 'Lazy sync (metadata only)',
+        });
+        // メタデータのみの同期を実行
+        return this.incrementalSync(repoInfo, { ...options, syncStrategy: 'incremental' }, onProgress);
+      default:
+        return this.sync(repoInfo, options, onProgress);
+    }
   }
 
   /**

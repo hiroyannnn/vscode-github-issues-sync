@@ -304,6 +304,7 @@ export class StorageService implements IStorageService {
 
   /**
    * Issueが変更されたかチェック（ハッシュ比較）
+   * APIがコメント本文を返さない場合、既存コメントをマージして比較する
    */
   async hasChanged(issue: Issue, storageDir: string): Promise<boolean> {
     try {
@@ -312,8 +313,11 @@ export class StorageService implements IStorageService {
         return true;
       }
 
+      // APIがコメントを返さない場合、既存コメントを使用して比較
+      const candidate = issue.comments?.length ? issue : { ...issue, comments: existingIssue.comments };
+
       // 新旧のMarkdownをハッシュ化して比較
-      const newHash = this.calculateHash(this.toMarkdown(issue));
+      const newHash = this.calculateHash(this.toMarkdown(candidate));
       const oldHash = this.calculateHash(this.toMarkdown(existingIssue));
 
       return newHash !== oldHash;

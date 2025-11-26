@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as os from 'os';
 import { AuthService } from './services/authService';
 import { GitHubService } from './services/githubService';
 import { StorageService } from './services/storageService';
@@ -27,15 +28,27 @@ export async function activate(context: vscode.ExtensionContext) {
   const githubService = new GitHubService(authService);
   const gitUtils = new GitUtils();
 
-  // ストレージパスを取得（workspace内の.github-issuesディレクトリ）
-  const getStoragePath = (workspaceFolder: vscode.WorkspaceFolder): string => {
-    return path.join(workspaceFolder.uri.fsPath, '.github-issues');
+  // ストレージパスを解決するヘルパー関数
+  const resolveStoragePath = (
+    workspaceFolder: vscode.WorkspaceFolder,
+    config: vscode.WorkspaceConfiguration
+  ): string => {
+    const raw = config.get<string>('storageDirectory', '.vscode/github-issues').trim();
+    const expanded =
+      raw.startsWith('~') && (raw.length === 1 || raw[1] === '/' || raw[1] === '\\')
+        ? path.join(os.homedir(), raw.slice(1))
+        : raw;
+    return path.isAbsolute(expanded)
+      ? expanded
+      : path.join(workspaceFolder.uri.fsPath, expanded);
   };
 
   // Tree View Providerの初期化
   let treeProvider: IssuesTreeProvider | undefined;
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-    const storagePath = getStoragePath(vscode.workspace.workspaceFolders[0]);
+    const workspaceFolder = vscode.workspace.workspaceFolders[0];
+    const config = vscode.workspace.getConfiguration('githubIssuesSync');
+    const storagePath = resolveStoragePath(workspaceFolder, config);
     treeProvider = new IssuesTreeProvider(storageService, storagePath);
 
     // Tree Viewの登録
@@ -65,7 +78,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const workspaceFolder = workspaceFolders[0];
       const workspacePath = workspaceFolder.uri.fsPath;
-      const storagePath = getStoragePath(workspaceFolder);
+      const config = vscode.workspace.getConfiguration('githubIssuesSync');
+      const storagePath = resolveStoragePath(workspaceFolder, config);
 
       // Git情報を取得
       const repoInfo = await gitUtils.getRepositoryInfo(workspacePath);
@@ -83,14 +97,15 @@ export async function activate(context: vscode.ExtensionContext) {
       console.log(`GitHub Issues Sync: Authenticated with ${token.type}`);
 
       // 同期オプションの取得
-      const config = vscode.workspace.getConfiguration('githubIssuesSync');
+      const syncPeriodStr = config.get<string>('syncPeriod', '6months');
+      const syncStrategyStr = config.get<string>('syncStrategy', 'incremental');
       const syncOptions: SyncOptions = {
         maxIssues: config.get<number>('maxIssues', 100),
-        syncPeriod: '6months',
+        syncPeriod: (syncPeriodStr as '6months' | '3months' | '1year' | 'all') || '6months',
         includeClosedIssues: config.get<boolean>('includeClosedIssues', false),
-        syncStrategy: 'full',
-        labelFilter: [],
-        milestoneFilter: [],
+        syncStrategy: (syncStrategyStr as 'incremental' | 'full' | 'lazy') || 'incremental',
+        labelFilter: (config.get<string[]>('labelFilter', []) ?? []).filter((label) => !!label?.trim()),
+        milestoneFilter: (config.get<string[]>('milestoneFilter', []) ?? []).filter((m) => !!m?.trim()),
       };
 
       // SyncServiceの初期化
@@ -111,7 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
             });
 
             // 同期実行
-            const result = await syncService.sync(repoInfo, syncOptions, (progressInfo) => {
+            const result = await syncService.syncWithStrategy(repoInfo, syncOptions, (progressInfo) => {
               progress.report({
                 message: progressInfo.message,
                 increment: progressInfo.total > 0 ? 100 / progressInfo.total : 0,
@@ -135,7 +150,7 @@ export async function activate(context: vscode.ExtensionContext) {
         );
       } else {
         // 自動同期時は進捗表示なし
-        const result = await syncService.sync(repoInfo, syncOptions);
+        const result = await syncService.syncWithStrategy(repoInfo, syncOptions);
 
         console.log(
           `GitHub Issues Sync (auto): synced: ${result.syncedCount}, skipped: ${result.skippedCount}, errors: ${result.errorCount}`
@@ -212,6 +227,19 @@ export async function activate(context: vscode.ExtensionContext) {
     ) {
       console.log('GitHub Issues Sync: Configuration changed, restarting auto sync');
       startAutoSync();
+    }
+    // storageDirectory が変更された場合、Tree Providerを再初期化
+    if (e.affectsConfiguration('githubIssuesSync.storageDirectory')) {
+      console.log('GitHub Issues Sync: Storage directory changed, reinitializing tree provider');
+      if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const config = vscode.workspace.getConfiguration('githubIssuesSync');
+        const storagePath = resolveStoragePath(workspaceFolder, config);
+        treeProvider = new IssuesTreeProvider(storageService, storagePath);
+        const treeView = vscode.window.registerTreeDataProvider('githubIssuesView', treeProvider);
+        context.subscriptions.push(treeView);
+        treeProvider.loadIssues().catch((e) => console.error('Failed to load issues:', e));
+      }
     }
   });
 

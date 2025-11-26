@@ -1,0 +1,17 @@
+**/*.test.ts
+**/*.test.js
+src/
+.github/
+docs/
+node_modules/
+dist/
+out/
+.vscode/
+webpack.config.js
+tsconfig.json
+jest.config.js
+.eslintrc.json
+.prettierrc
+.prettierignore
+.gitignore
+*.md

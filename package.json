@@ -4,6 +4,18 @@
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
   "version": "0.1.0",
   "publisher": "hiroyannnn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hiroyannnn/vscode-github-issues-sync/issues"
+  },
+  "homepage": "https://github.com/hiroyannnn/vscode-github-issues-sync",
+  "keywords": [
+    "github",
+    "issues",
+    "sync",
+    "markdown",
+    "local"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hiroyannnn/vscode-github-issues-sync"
@@ -15,6 +27,8 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:.git",
     "onView:githubIssuesView",
     "onCommand:githubIssuesSync.syncNow",
     "onCommand:githubIssuesSync.configure"

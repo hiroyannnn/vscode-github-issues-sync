@@ -4,6 +4,10 @@
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
   "version": "0.1.0",
   "publisher": "hiroyannnn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hiroyannnn/vscode-github-issues-sync"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -127,6 +131,7 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "test": "jest"
   },
   "devDependencies": {

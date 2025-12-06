@@ -88,7 +88,10 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(true);
+      // 新規Issueとして扱う（ローカルになし）
+      mockStorageService.loadIssue.mockResolvedValue(null);
+      // 詳細取得でmockIssueを返す
+      mockGitHubService.fetchIssueDetails.mockResolvedValue(mockIssue);
 
       const result = await syncService.sync(mockRepoInfo, mockOptions);
 
@@ -96,6 +99,11 @@ describe('SyncService', () => {
       expect(result.syncedCount).toBe(1);
       expect(result.skippedCount).toBe(0);
       expect(result.errorCount).toBe(0);
+      expect(mockGitHubService.fetchIssueDetails).toHaveBeenCalledWith(
+        mockRepoInfo.owner,
+        mockRepoInfo.repo,
+        mockIssue.number
+      );
       expect(mockStorageService.saveIssues).toHaveBeenCalledWith([mockIssue], '/test/storage');
       expect(mockStorageService.saveSyncState).toHaveBeenCalled();
     });
@@ -112,13 +120,15 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(false);
+      // 同じupdated_atを持つIssueを返す
+      mockStorageService.loadIssue.mockResolvedValue(mockIssue);
 
       const result = await syncService.sync(mockRepoInfo, mockOptions);
 
       expect(result.success).toBe(true);
       expect(result.syncedCount).toBe(0);
       expect(result.skippedCount).toBe(1);
+      expect(mockGitHubService.fetchIssueDetails).not.toHaveBeenCalled();
       expect(mockStorageService.saveIssues).not.toHaveBeenCalled();
     });
 
@@ -140,7 +150,9 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(true);
+      // 全て新規として扱う
+      mockStorageService.loadIssue.mockResolvedValue(null);
+      mockGitHubService.fetchIssueDetails.mockResolvedValue(mockIssue);
 
       const progressCallback = jest.fn();
       await syncService.sync(mockRepoInfo, mockOptions, progressCallback);
@@ -173,16 +185,20 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged
-        .mockResolvedValueOnce(true)
-        .mockRejectedValueOnce(new Error('Storage error'))
-        .mockResolvedValueOnce(true);
+      mockStorageService.loadIssue.mockResolvedValue(null);
+
+      // 2番目のIssueでエラーを発生させる
+      mockGitHubService.fetchIssueDetails
+        .mockResolvedValueOnce({ ...mockIssue, number: 1 })
+        .mockRejectedValueOnce(new Error('Fetch error'))
+        .mockResolvedValueOnce({ ...mockIssue, number: 3 });
 
       const result = await syncService.sync(mockRepoInfo, mockOptions);
 
       expect(result.success).toBe(true);
       expect(result.errorCount).toBe(1);
       expect(result.errors).toHaveLength(1);
+      expect(result.syncedCount).toBe(2);
     });
 
     it('キャンセルできる', async () => {
@@ -202,7 +218,8 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(true);
+      mockStorageService.loadIssue.mockResolvedValue(null);
+      mockGitHubService.fetchIssueDetails.mockResolvedValue(mockIssue);
 
       // 同期開始後すぐにキャンセル
       const syncPromise = syncService.sync(mockRepoInfo, mockOptions);
@@ -234,7 +251,8 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(true);
+      mockStorageService.loadIssue.mockResolvedValue(null);
+      mockGitHubService.fetchIssueDetails.mockResolvedValue({ ...mockIssue, number: 456 });
 
       const result = await syncService.incrementalSync(mockRepoInfo, mockOptions);
 
@@ -262,7 +280,8 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockResolvedValue(true);
+      mockStorageService.loadIssue.mockResolvedValue(null);
+      mockGitHubService.fetchIssueDetails.mockResolvedValue(mockIssue);
 
       const result = await syncService.incrementalSync(mockRepoInfo, mockOptions);
 
@@ -308,10 +327,13 @@ describe('SyncService', () => {
         hasMore: false,
       });
 
-      mockStorageService.hasChanged.mockImplementation(
+      mockStorageService.loadIssue.mockResolvedValue(null);
+
+      // 遅延をシミュレート
+      mockGitHubService.fetchIssueDetails.mockImplementation(
         () =>
           new Promise((resolve) => {
-            setTimeout(() => resolve(true), 10);
+            setTimeout(() => resolve(mockIssue), 10);
           })
       );
 

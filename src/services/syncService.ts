@@ -1,7 +1,6 @@
 /**
  * 同期サービス
  */
-
 import { ISyncService, SyncResult, ProgressCallback } from './interfaces/ISyncService';
 import { IGitHubService } from './interfaces/IGitHubService';
 import { IStorageService } from './interfaces/IStorageService';
@@ -28,21 +27,6 @@ export class SyncService implements ISyncService {
     private readonly storageService: IStorageService,
     private readonly storageDir: string
   ) {}
-
-  /**
-   * 既存のコメントを復元するヘルパーメソッド
-   * GitHub APIがコメント本文を返さない場合、ローカル保存済みのコメントを復元する
-   */
-  private async resolveComments(issue: Issue): Promise<Issue> {
-    if (issue.comments?.length) {
-      return issue;
-    }
-    const existing = await this.storageService.loadIssue(issue.number, this.storageDir);
-    if (existing?.comments?.length) {
-      return { ...issue, comments: existing.comments };
-    }
-    return issue;
-  }
 
   /**
    * Issueを同期
@@ -101,14 +85,23 @@ export class SyncService implements ISyncService {
         const issue = issues[i];
 
         try {
-          // コメントを復元（APIが返さない場合、既存コメントを使用）
-          const preparedIssue = await this.resolveComments(issue);
+          // ローカルのIssueを読み込んで変更チェック
+          // APIから取得した一覧データにはコメントが含まれていないため、
+          // updated_atの比較で変更検知を行う
+          const existingIssue = await this.storageService.loadIssue(issue.number, this.storageDir);
 
-          // 変更チェック
-          const changed = await this.storageService.hasChanged(preparedIssue, this.storageDir);
+          const isNew = !existingIssue;
+          const isUpdated = existingIssue && existingIssue.updated_at !== issue.updated_at;
 
-          if (changed) {
-            issuesToSave.push(preparedIssue);
+          if (isNew || isUpdated) {
+            // 新規または更新がある場合は詳細（コメント含む）を取得
+            const detailedIssue = await this.githubService.fetchIssueDetails(
+              repoInfo.owner,
+              repoInfo.repo,
+              issue.number
+            );
+
+            issuesToSave.push(detailedIssue);
             result.syncedCount++;
           } else {
             result.skippedCount++;
@@ -225,14 +218,21 @@ export class SyncService implements ISyncService {
         const issue = issues[i];
 
         try {
-          // コメントを復元（APIが返さない場合、既存コメントを使用）
-          const preparedIssue = await this.resolveComments(issue);
+          // ローカルのIssueを読み込んで変更チェック
+          const existingIssue = await this.storageService.loadIssue(issue.number, this.storageDir);
 
-          // 変更チェック
-          const changed = await this.storageService.hasChanged(preparedIssue, this.storageDir);
+          const isNew = !existingIssue;
+          const isUpdated = existingIssue && existingIssue.updated_at !== issue.updated_at;
 
-          if (changed) {
-            issuesToSave.push(preparedIssue);
+          if (isNew || isUpdated) {
+            // 新規または更新がある場合は詳細（コメント含む）を取得
+            const detailedIssue = await this.githubService.fetchIssueDetails(
+              repoInfo.owner,
+              repoInfo.repo,
+              issue.number
+            );
+
+            issuesToSave.push(detailedIssue);
             result.syncedCount++;
           } else {
             result.skippedCount++;

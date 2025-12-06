@@ -1,7 +1,6 @@
 /**
  * 同期サービス
  */
-
 import { ISyncService, SyncResult, ProgressCallback } from './interfaces/ISyncService';
 import { IGitHubService } from './interfaces/IGitHubService';
 import { IStorageService } from './interfaces/IStorageService';
@@ -29,11 +28,6 @@ export class SyncService implements ISyncService {
     private readonly storageDir: string
   ) {}
 
-
-
-  /**
-   * Issueを同期
-   */
   /**
    * Issueを同期
    */
@@ -163,9 +157,6 @@ export class SyncService implements ISyncService {
     return result;
   }
 
-  /**
-   * 差分同期（前回同期以降の変更のみ）
-   */
   /**
    * 差分同期（前回同期以降の変更のみ）
    */

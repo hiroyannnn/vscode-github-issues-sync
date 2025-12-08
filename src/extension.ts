@@ -199,7 +199,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const config = vscode.workspace.getConfiguration('githubIssuesSync');
     const enableAutoSync = config.get<boolean>('enableAutoSync', false);
-    const syncInterval = config.get<number>('syncInterval', 15); // デフォルト15分
+    const syncInterval = config.get<number>('syncInterval', 60); // デフォルト60分
 
     if (enableAutoSync) {
       const intervalMs = syncInterval * 60 * 1000; // 分をミリ秒に変換

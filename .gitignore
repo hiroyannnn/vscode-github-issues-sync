@@ -6,3 +6,8 @@ dist
 .DS_Store
 coverage/
 *.log
+
+# Debug scripts
+debug-sync.ts
+.vscode/github-issues-debug/
+

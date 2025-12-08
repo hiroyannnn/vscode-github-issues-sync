@@ -72,7 +72,7 @@
         },
         "githubIssuesSync.syncInterval": {
           "type": "number",
-          "default": 15,
+          "default": 60,
           "minimum": 5,
           "maximum": 1440,
           "description": "Synchronization interval in minutes"
@@ -87,7 +87,12 @@
         "githubIssuesSync.syncPeriod": {
           "type": "string",
           "default": "6months",
-          "enum": ["3months", "6months", "1year", "all"],
+          "enum": [
+            "3months",
+            "6months",
+            "1year",
+            "all"
+          ],
           "description": "Time period for issue synchronization"
         },
         "githubIssuesSync.includeClosedIssues": {
@@ -98,7 +103,11 @@
         "githubIssuesSync.syncStrategy": {
           "type": "string",
           "default": "incremental",
-          "enum": ["full", "incremental", "lazy"],
+          "enum": [
+            "full",
+            "incremental",
+            "lazy"
+          ],
           "enumDescriptions": [
             "Full sync every time",
             "Only sync changes since last sync",

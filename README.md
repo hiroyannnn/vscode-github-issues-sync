@@ -41,7 +41,7 @@ F5キーを押してExtension Development Hostを起動します。
 3. "GitHub Issues Sync: Configure"を実行
 4. 必要に応じて設定を変更：
    - `enableAutoSync`: 自動同期を有効化（デフォルト: false）
-   - `syncInterval`: 同期間隔（分、デフォルト: 15）
+   - `syncInterval`: 同期間隔（分、デフォルト: 60）
    - `maxIssues`: 最大同期Issue数（デフォルト: 100）
    - `includeClosedIssues`: Closed Issueも同期（デフォルト: false）
 
@@ -108,7 +108,7 @@ Issue本文がここに表示されます。
 ### `githubIssuesSync.syncInterval`
 
 - **型**: `number`
-- **デフォルト**: `15`
+- **デフォルト**: `60`
 - **範囲**: `5` 〜 `1440`（分）
 - **説明**: 自動同期の間隔
 

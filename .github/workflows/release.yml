@@ -3,6 +3,7 @@ name: Release
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -40,6 +41,14 @@ jobs:
 
       - name: Package extension
         run: vsce package
+
+      - name: Publish to open-vsx
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+        run: |
+          npm install -g ovsx
+          ovsx publish *.vsix -p $OVSX_TOKEN
+          echo "Successfully published the extension to open-vsx"
 
       - name: Upload VSIX to GitHub Release
         uses: softprops/action-gh-release@v1

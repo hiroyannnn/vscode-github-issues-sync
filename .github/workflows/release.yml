@@ -46,8 +46,8 @@ jobs:
         env:
           OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
         run: |
-          npm install -g ovsx
-          ovsx publish *.vsix -p $OVSX_TOKEN
+          npm install -g ovsx@0.10.7
+          ovsx publish *.vsix
           echo "Successfully published the extension to open-vsx"
 
       - name: Upload VSIX to GitHub Release

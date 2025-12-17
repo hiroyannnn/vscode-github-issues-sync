@@ -14,4 +14,9 @@ jest.config.js
 .prettierignore
 .gitignore
 *.md
+!README.md
+!README.ja.md
+!CHANGELOG.md
+!CONTRIBUTING.md
 !dist/extension.js
+sync.png

@@ -2,6 +2,7 @@
   "name": "vscode-github-issues-sync",
   "displayName": "GitHub Issues Sync",
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
+  "icon": "resources/icon.png",
   "version": "0.1.0",
   "publisher": "hiroyannnn",
   "license": "MIT",
@@ -50,7 +51,7 @@
         {
           "id": "github-issues-sync",
           "title": "GitHub Issues",
-          "icon": "$(github)"
+          "icon": "resources/activitybar.svg"
         }
       ]
     },

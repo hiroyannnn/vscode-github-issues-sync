@@ -1,27 +1,29 @@
 # GitHub Issues Sync for VS Code
 
-VS Code拡張機能で、GitHubのIssueをローカルに同期し、AIコードエージェントやオフライン環境での参照を可能にします。
+English | [日本語](README.ja.md)
 
-## 特徴
+A VS Code extension that syncs GitHub Issues to local Markdown files so you can reference them offline and use them as context for AI code agents.
 
-- **自動同期**: 設定可能な間隔（5〜1440分）でGitHub Issuesを自動的にローカルに同期
-- **手動同期**: コマンドパレットから即座に同期を実行
-- **Markdown形式**: IssueをYAMLフロントマター付きMarkdownで保存（AI/LLMに最適）
-- **Tree View**: VS CodeのサイドバーでIssueを一覧表示、クリックで詳細を開く
-- **認証**: VS Code標準のGitHub認証をサポート（PATフォールバック対応）
-- **オフライン対応**: 同期後はネットワーク接続なしでIssueを参照可能
-- **フィルタリング**: Issue状態、ラベル、マイルストーン、期間での柔軟なフィルタリング
+## Features
 
-## インストール
+- **Auto sync**: Sync GitHub Issues at a configurable interval (5–1440 minutes)
+- **Manual sync**: Run a sync instantly from the Command Palette
+- **Markdown output**: Saves issues as Markdown with YAML front matter (AI/LLM-friendly)
+- **Tree View**: Browse issues in the VS Code sidebar and open details on click
+- **Authentication**: Uses VS Code GitHub authentication (with PAT fallback)
+- **Offline friendly**: Read synced issues without a network connection
+- **Filtering**: Flexible filters by state, labels, milestones, and time range
 
-### VS Code Marketplaceから（公開後）
+## Installation
 
-1. VS Codeを開く
-2. 拡張機能ビュー（`Ctrl+Shift+X` / `Cmd+Shift+X`）を開く
-3. "GitHub Issues Sync"を検索
-4. "Install"をクリック
+### From the VS Code Marketplace (once published)
 
-### 開発版のインストール
+1. Open VS Code
+2. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
+3. Search for "GitHub Issues Sync"
+4. Click "Install"
+
+### Install from source (development)
 
 ```bash
 git clone https://github.com/hiroyannnn/vscode-github-issues-sync.git
@@ -30,36 +32,36 @@ npm install
 npm run compile
 ```
 
-F5キーを押してExtension Development Hostを起動します。
+Press `F5` to start the Extension Development Host.
 
-## 使い方
+## Usage
 
-### 初期設定
+### Initial setup
 
-1. GitHubリポジトリのワークスペースを開く
-2. コマンドパレット（`Ctrl+Shift+P` / `Cmd+Shift+P`）を開く
-3. "GitHub Issues Sync: Configure"を実行
-4. 必要に応じて設定を変更：
-   - `enableAutoSync`: 自動同期を有効化（デフォルト: false）
-   - `syncInterval`: 同期間隔（分、デフォルト: 60）
-   - `maxIssues`: 最大同期Issue数（デフォルト: 100）
-   - `includeClosedIssues`: Closed Issueも同期（デフォルト: false）
+1. Open a workspace that contains your GitHub repository
+2. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+3. Run "GitHub Issues Sync: Configure"
+4. Adjust settings as needed:
+   - `enableAutoSync`: Enable auto sync (default: false)
+   - `syncInterval`: Sync interval in minutes (default: 60)
+   - `maxIssues`: Max number of issues to sync (default: 100)
+   - `includeClosedIssues`: Include closed issues (default: false)
 
-### 手動同期
+### Manual sync
 
-1. コマンドパレットを開く
-2. "GitHub Issues Sync: Sync Now"を実行
-3. 進捗通知が表示され、完了後に結果が通知されます
+1. Open the Command Palette
+2. Run "GitHub Issues Sync: Sync Now"
+3. You’ll see progress notifications and a completion message
 
-### Tree Viewでの閲覧
+### Browse in the Tree View
 
-1. アクティビティバーの"GitHub Issues"アイコンをクリック
-2. Issueリストが表示されます
-3. Issueをクリックすると、Markdownファイルが開きます
+1. Click the "GitHub Issues" icon in the Activity Bar
+2. The issue list appears
+3. Click an issue to open its Markdown file
 
-### 同期されたファイル
+### Synced files
 
-同期されたIssueはデフォルトで `.vscode/github-issues/` ディレクトリに保存されます（設定で変更可能）：
+Synced issues are stored in `.vscode/github-issues/` by default (configurable):
 
 ```
 .vscode/github-issues/
@@ -68,7 +70,7 @@ F5キーを押してExtension Development Hostを起動します。
 └── ...
 ```
 
-各Issueファイルの形式：
+Each issue is saved like this:
 
 ```markdown
 ---
@@ -88,180 +90,181 @@ labels:
 
 # Issue Title
 
-Issue本文がここに表示されます。
+Issue body goes here.
 
 ## Comments
 
 ### @commenter1
 
-コメント内容...
+Comment text...
 ```
 
-## 設定
+## Settings
 
 ### `githubIssuesSync.enableAutoSync`
 
-- **型**: `boolean`
-- **デフォルト**: `false`
-- **説明**: 自動同期を有効化
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Enable automatic synchronization
 
 ### `githubIssuesSync.syncInterval`
 
-- **型**: `number`
-- **デフォルト**: `60`
-- **範囲**: `5` 〜 `1440`（分）
-- **説明**: 自動同期の間隔
+- **Type**: `number`
+- **Default**: `60`
+- **Range**: `5`–`1440` (minutes)
+- **Description**: Auto-sync interval
 
 ### `githubIssuesSync.maxIssues`
 
-- **型**: `number`
-- **デフォルト**: `100`
-- **範囲**: `1` 〜 `1000`
-- **説明**: 同期するIssueの最大数
+- **Type**: `number`
+- **Default**: `100`
+- **Range**: `1`–`1000`
+- **Description**: Maximum number of issues to sync
 
 ### `githubIssuesSync.includeClosedIssues`
 
-- **型**: `boolean`
-- **デフォルト**: `false`
-- **説明**: Closed Issueも同期対象に含める
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Include closed issues in synchronization
 
 ### `githubIssuesSync.syncPeriod`
 
-- **型**: `string`
-- **デフォルト**: `6months`
-- **選択肢**: `3months` | `6months` | `1year` | `all`
-- **説明**: 同期対象のIssue期間を指定
+- **Type**: `string`
+- **Default**: `6months`
+- **Options**: `3months` | `6months` | `1year` | `all`
+- **Description**: Time period for issue synchronization
 
 ### `githubIssuesSync.syncStrategy`
 
-- **型**: `string`
-- **デフォルト**: `incremental`
-- **選択肢**: `full` | `incremental` | `lazy`
-- **説明**:
-  - `full`: 毎回すべてのIssueを同期
-  - `incremental`: 前回同期以降の変更のみを同期
-  - `lazy`: メタデータのみ同期、詳細は必要時に取得
+- **Type**: `string`
+- **Default**: `incremental`
+- **Options**: `full` | `incremental` | `lazy`
+- **Description**:
+  - `full`: Full sync every time
+  - `incremental`: Only sync changes since the last sync
+  - `lazy`: Sync metadata only and load details on demand
 
 ### `githubIssuesSync.labelFilter`
 
-- **型**: `array<string>`
-- **デフォルト**: `[]`
-- **説明**: 特定のラベルを持つIssueのみを同期（空配列で全ラベル）
+- **Type**: `array<string>`
+- **Default**: `[]`
+- **Description**: Sync only issues with specific labels (empty = all labels)
 
 ### `githubIssuesSync.milestoneFilter`
 
-- **型**: `array<string>`
-- **デフォルト**: `[]`
-- **説明**: 特定のマイルストーンを持つIssueのみを同期（空配列で全マイルストーン）
+- **Type**: `array<string>`
+- **Default**: `[]`
+- **Description**: Sync only issues with specific milestones (empty = all milestones)
 
 ### `githubIssuesSync.storageDirectory`
 
-- **型**: `string`
-- **デフォルト**: `.vscode/github-issues`
-- **説明**: Issueを保存するディレクトリ（相対パスはワークスペース基準、`~`で展開可能）
+- **Type**: `string`
+- **Default**: `.vscode/github-issues`
+- **Description**: Directory to store synced issues (relative paths are workspace-based; `~` is expanded)
 
 ### `githubIssuesSync.personalAccessToken`
 
-- **型**: `string`
-- **デフォルト**: `` (空文字)
-- **説明**: GitHub Personal Access Token（VS Code認証失敗時のフォールバック）
+- **Type**: `string`
+- **Default**: `` (empty string)
+- **Description**: GitHub Personal Access Token (fallback if VS Code authentication fails)
 
-## コマンド
+## Commands
 
 ### `GitHub Issues Sync: Sync Now`
 
-手動で即座にIssueを同期します。進捗通知が表示され、完了後に結果が通知されます。
+Sync issues immediately. Progress and results are shown in notifications.
 
 ### `GitHub Issues Sync: Configure`
 
-拡張機能の設定画面を開きます。
+Open the extension settings.
 
-## 認証
+## Authentication
 
-この拡張機能は以下の順序で認証を試みます：
+The extension tries authentication in this order:
 
-1. **VS Code標準のGitHub認証**（推奨）
-   - 初回起動時に自動的にプロンプトが表示されます
-   - `repo`スコープが必要です
+1. **VS Code GitHub authentication** (recommended)
+   - You’ll be prompted on first use
+   - Requires the `repo` scope
 
-2. **Personal Access Token（PAT）from 設定**
-   - 設定 → `githubIssuesSync.personalAccessToken`
+2. **Personal Access Token (PAT) from settings**
+   - `githubIssuesSync.personalAccessToken`
 
-3. **Personal Access Token（PAT）from SecretStorage**
-   - VS CodeのSecretStorageに保存されたPAT
+3. **Personal Access Token (PAT) from SecretStorage**
+   - A PAT stored in VS Code SecretStorage
 
-PATを使用する場合、以下のスコープが必要です：
-- `repo` (プライベートリポジトリの場合)
-- `public_repo` (パブリックリポジトリのみの場合)
+If you use a PAT, you typically need:
+- `repo` (for private repositories)
+- `public_repo` (for public repositories only)
 
-## トラブルシューティング
+## Troubleshooting
 
-### 認証に失敗する
+### Authentication fails
 
-- VS CodeのGitHub認証を再認証してください
-- または、PATを設定に追加してください
+- Re-authenticate GitHub in VS Code
+- Or add a PAT in settings
 
-### Issueが同期されない
+### Issues don’t sync
 
-- ワークスペースがGitHubリポジトリのルートであることを確認
-- `.git/config`に`origin`リモートが設定されていることを確認
-- GitHubのAPI Rate Limitに達していないか確認（コンソールログを参照）
+- Ensure the workspace is the root of a GitHub repository
+- Ensure `origin` is configured in `.git/config`
+- Check if you’ve hit GitHub API rate limits (see console logs)
 
-### 自動同期が動作しない
+### Auto sync doesn’t run
 
-- `githubIssuesSync.enableAutoSync`が`true`になっているか確認
-- VS Codeを再起動してみてください
+- Ensure `githubIssuesSync.enableAutoSync` is set to `true`
+- Try restarting VS Code
 
-## 開発
+## Development
 
-### 必要環境
+### Requirements
 
-- Node.js 18以上
-- npm 8以上
+- Node.js 18+
+- npm 8+
 
-### セットアップ
+### Setup
 
 ```bash
 npm install
 ```
 
-### ビルド
+### Build
 
 ```bash
 npm run compile
 ```
 
-### テスト
+### Test
 
 ```bash
 npm test
 ```
 
-### Lint & Format
+### Lint & format
 
 ```bash
 npm run lint
 npm run format
 ```
 
-### デバッグ
+### Debug
 
-1. VS Codeでプロジェクトを開く
-2. F5キーを押してExtension Development Hostを起動
-3. ブレークポイントを設定してデバッグ
+1. Open the project in VS Code
+2. Press `F5` to start the Extension Development Host
+3. Set breakpoints and debug
 
-## ライセンス
+## License
 
 MIT
 
-## 作者
+## Author
 
 hiroyannnn
 
-## 貢献
+## Contributing
 
-貢献を歓迎します！詳細は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## サポート
+## Support
 
-問題や機能リクエストは[GitHub Issues](https://github.com/hiroyannnn/vscode-github-issues-sync/issues)で報告してください。
+Please report issues and feature requests via GitHub Issues:
+https://github.com/hiroyannnn/vscode-github-issues-sync/issues

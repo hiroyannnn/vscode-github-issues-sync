@@ -9,6 +9,8 @@ jobs:
   publish:
     name: Publish to VS Code Marketplace
     runs-on: ubuntu-latest
+    env:
+      OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -47,9 +49,7 @@ jobs:
           vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
 
       - name: Publish to open-vsx
-        if: ${{ secrets.OVSX_TOKEN != '' }}
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
+        if: ${{ env.OVSX_PAT }}
         run: |
           ovsx publish "$VSIX_PATH"
           echo "Successfully published the extension to open-vsx"

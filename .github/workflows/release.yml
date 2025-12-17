@@ -3,11 +3,14 @@ name: Release
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
     name: Publish to VS Code Marketplace
     runs-on: ubuntu-latest
+    env:
+      OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -31,15 +34,25 @@ jobs:
       - name: Build extension
         run: npm run compile
 
+      - name: Install publishing tools
+        run: npm install -g @vscode/vsce ovsx@0.10.7
+
+      - name: Package extension
+        run: |
+          vsce package
+          echo "VSIX_PATH=$(ls -1 *.vsix | head -n 1)" >> "$GITHUB_ENV"
+
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          npm install -g @vscode/vsce
-          vsce publish -p $VSCE_PAT
+          vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
 
-      - name: Package extension
-        run: vsce package
+      - name: Publish to open-vsx
+        if: ${{ env.OVSX_PAT }}
+        run: |
+          ovsx publish "$VSIX_PATH"
+          echo "Successfully published the extension to open-vsx"
 
       - name: Upload VSIX to GitHub Release
         uses: softprops/action-gh-release@v1

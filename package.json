@@ -3,7 +3,7 @@
   "displayName": "GitHub Issues Sync",
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
   "icon": "resources/icon.png",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "hiroyannnn",
   "license": "MIT",
   "bugs": {

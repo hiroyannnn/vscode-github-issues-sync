@@ -4,59 +4,208 @@ on:
   release:
     types: [created]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to deploy (e.g. v0.2.0)
+        required: true
+        type: string
+      publish_vsce:
+        description: Publish to VS Code Marketplace
+        required: true
+        type: boolean
+        default: true
+      publish_open_vsx:
+        description: Publish to Open VSX
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
 
 jobs:
-  publish:
-    name: Publish to VS Code Marketplace
+  build_vsix:
+    name: Build VSIX
     runs-on: ubuntu-latest
-    env:
-      OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
+    outputs:
+      has_vsce_pat: ${{ steps.detect_secrets.outputs.has_vsce_pat }}
+      has_ovsx_pat: ${{ steps.detect_secrets.outputs.has_ovsx_pat }}
+      want_vsce: ${{ steps.decide_targets.outputs.want_vsce }}
+      want_open_vsx: ${{ steps.decide_targets.outputs.want_open_vsx }}
 
     steps:
       - name: Checkout code
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'npm'
 
       - name: Install dependencies
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: npm ci
 
-      - name: Run tests
+      - name: Detect publishing secrets
+        id: detect_secrets
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${VSCE_PAT:-}" ]; then echo "has_vsce_pat=true" >> "$GITHUB_OUTPUT"; else echo "has_vsce_pat=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -n "${OVSX_PAT:-}" ]; then echo "has_ovsx_pat=true" >> "$GITHUB_OUTPUT"; else echo "has_ovsx_pat=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Decide publish targets
+        id: decide_targets
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            WANT_VSCE="$(jq -r '.inputs.publish_vsce // "true"' "$GITHUB_EVENT_PATH")"
+            WANT_OPEN_VSX="$(jq -r '.inputs.publish_open_vsx // "true"' "$GITHUB_EVENT_PATH")"
+            echo "want_vsce=${WANT_VSCE}" >> "$GITHUB_OUTPUT"
+            echo "want_open_vsx=${WANT_OPEN_VSX}" >> "$GITHUB_OUTPUT"
+          else
+            echo "want_vsce=true" >> "$GITHUB_OUTPUT"
+            echo "want_open_vsx=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests (includes lint/build)
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: npm test
 
-      - name: Run lint
-        run: npm run lint
-
-      - name: Build extension
-        run: npm run compile
-
-      - name: Install publishing tools
-        run: npm install -g @vscode/vsce ovsx@0.10.7
+      - name: Install packaging tool
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: npm install -g @vscode/vsce
 
       - name: Package extension
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
+          set -euo pipefail
           vsce package
-          echo "VSIX_PATH=$(ls -1 *.vsix | head -n 1)" >> "$GITHUB_ENV"
+
+      - name: Download VSIX from GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_TAG="$(jq -r '.inputs.release_tag' "$GITHUB_EVENT_PATH")"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.vsix"
+
+      - name: Validate VSIX
+        run: |
+          set -euo pipefail
+          VSIX_COUNT="$(ls -1 *.vsix 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "$VSIX_COUNT" -ne 1 ]; then
+            echo "Expected exactly 1 .vsix file, found: $VSIX_COUNT" >&2
+            ls -la || true
+            exit 1
+          fi
+          echo "VSIX: $(ls -1 *.vsix)"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: '*.vsix'
+          retention-days: 7
+
+  publish_vsce:
+    name: Publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+    needs: build_vsix
+    if: ${{ needs.build_vsix.outputs.want_vsce == 'true' && needs.build_vsix.outputs.has_vsce_pat == 'true' }}
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+
+      - name: Validate VSIX
+        run: |
+          set -euo pipefail
+          VSIX_COUNT="$(ls -1 *.vsix 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "$VSIX_COUNT" -ne 1 ]; then
+            echo "Expected exactly 1 .vsix file, found: $VSIX_COUNT" >&2
+            ls -la || true
+            exit 1
+          fi
 
       - name: Publish to VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
+          set -euo pipefail
+          VSIX_PATH="$(ls -1 *.vsix)"
           vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
 
-      - name: Publish to open-vsx
-        if: ${{ env.OVSX_PAT }}
+  publish_open_vsx:
+    name: Publish to Open VSX
+    runs-on: ubuntu-latest
+    needs: build_vsix
+    if: ${{ needs.build_vsix.outputs.want_open_vsx == 'true' && needs.build_vsix.outputs.has_ovsx_pat == 'true' }}
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install ovsx
+        run: npm install -g ovsx@0.10.7
+
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+
+      - name: Validate VSIX
         run: |
+          set -euo pipefail
+          VSIX_COUNT="$(ls -1 *.vsix 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "$VSIX_COUNT" -ne 1 ]; then
+            echo "Expected exactly 1 .vsix file, found: $VSIX_COUNT" >&2
+            ls -la || true
+            exit 1
+          fi
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_TOKEN }}
+        run: |
+          set -euo pipefail
+          VSIX_PATH="$(ls -1 *.vsix)"
           ovsx publish "$VSIX_PATH"
           echo "Successfully published the extension to open-vsx"
 
+  upload_release_asset:
+    name: Upload VSIX to GitHub Release
+    runs-on: ubuntu-latest
+    needs: build_vsix
+    if: ${{ github.event_name == 'release' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-package
+
       - name: Upload VSIX to GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: '*.vsix'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

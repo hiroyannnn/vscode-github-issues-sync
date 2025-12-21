@@ -3,7 +3,7 @@
   "displayName": "GitHub Issues Sync",
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
   "icon": "resources/icon.png",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "hiroyannnn",
   "license": "MIT",
   "bugs": {
@@ -131,6 +131,22 @@
             "type": "string"
           },
           "description": "Filter issues by milestones (empty = all milestones)"
+        },
+        "githubIssuesSync.repositoryFilter": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Restrict sync to specific repositories (owner/repo or repo name; empty = all repositories)"
+        },
+        "githubIssuesSync.organizationFilter": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Restrict sync to specific organizations/users (empty = all owners)"
         },
         "githubIssuesSync.personalAccessToken": {
           "type": "string",

@@ -8,6 +8,7 @@ import { SyncService } from './services/syncService';
 import { IssuesTreeProvider } from './views/issuesTreeProvider';
 import { GitUtils } from './utils/gitUtils';
 import { SyncOptions } from './models/issue';
+import { evaluateSyncFilters, normalizeFilterValues } from './utils/syncFilters';
 
 /** 自動同期タイマーを保持するグローバル変数 */
 let autoSyncTimer: NodeJS.Timeout | undefined;
@@ -87,6 +88,29 @@ export async function activate(context: vscode.ExtensionContext) {
           vscode.window.showErrorMessage(
             'GitHub Issues Sync: Not a valid GitHub repository. Please open a workspace with a GitHub repository.'
           );
+        }
+        return;
+      }
+
+      const repositoryFilter = normalizeFilterValues(
+        config.get<string[]>('repositoryFilter', []) ?? []
+      );
+      const organizationFilter = normalizeFilterValues(
+        config.get<string[]>('organizationFilter', []) ?? []
+      );
+      const filterDecision = evaluateSyncFilters(
+        repoInfo,
+        repositoryFilter,
+        organizationFilter
+      );
+      if (!filterDecision.allowed) {
+        const repoLabel = `${repoInfo.owner}/${repoInfo.repo}`;
+        const reasons = filterDecision.filteredBy.join(' & ');
+        const message = `GitHub Issues Sync: Skipped ${repoLabel} (filtered by ${reasons})`;
+        if (showProgress) {
+          vscode.window.showInformationMessage(message);
+        } else {
+          console.log(message);
         }
         return;
       }

@@ -127,6 +127,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub PAT handling with multiple secure fallback mechanisms
 - No hardcoded credentials or sensitive information
 
+## [0.3.1] - 2026-01-12
+
+### Added
+
+- Sync Now and Configure buttons in Tree View title bar
+- Panel UI for quick access to sync and settings
+
+### Changed
+
+- Redesigned sidebar icon with hash (#) and sync arrows for cleaner appearance
+
 ## [0.3.0] - 2025-12-21
 
 ### Added

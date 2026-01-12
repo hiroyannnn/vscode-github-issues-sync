@@ -3,7 +3,7 @@
   "displayName": "GitHub Issues Sync",
   "description": "Sync GitHub issues to local Markdown files for AI code agent reference",
   "icon": "resources/icon.png",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "hiroyannnn",
   "license": "MIT",
   "bugs": {
@@ -39,13 +39,29 @@
     "commands": [
       {
         "command": "githubIssuesSync.syncNow",
-        "title": "GitHub Issues: Sync Now"
+        "title": "GitHub Issues: Sync Now",
+        "icon": "$(sync)"
       },
       {
         "command": "githubIssuesSync.configure",
-        "title": "GitHub Issues: Configure"
+        "title": "GitHub Issues: Configure",
+        "icon": "$(gear)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "githubIssuesSync.syncNow",
+          "when": "view == githubIssuesView",
+          "group": "navigation"
+        },
+        {
+          "command": "githubIssuesSync.configure",
+          "when": "view == githubIssuesView",
+          "group": "navigation"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

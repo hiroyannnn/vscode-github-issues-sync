@@ -46,6 +46,8 @@ F5キーを押してExtension Development Hostを起動します。
    - `syncInterval`: 同期間隔（分、デフォルト: 60）
    - `maxIssues`: 最大同期Issue数（デフォルト: 100）
    - `includeClosedIssues`: Closed Issueも同期（デフォルト: false）
+   - `repositoryFilter`: 同期するリポジトリを制限（デフォルト: 空配列）
+   - `organizationFilter`: 同期するOrganization/Userを制限（デフォルト: 空配列）
 
 ### 手動同期
 
@@ -156,6 +158,18 @@ Issue本文がここに表示されます。
 - **デフォルト**: `[]`
 - **説明**: 特定のマイルストーンを持つIssueのみを同期（空配列で全マイルストーン）
 
+### `githubIssuesSync.repositoryFilter`
+
+- **型**: `array<string>`
+- **デフォルト**: `[]`
+- **説明**: 同期対象のリポジトリを制限。`owner/repo` で完全一致、`repo` で任意のownerに一致（空配列で全リポジトリ）。repositoryFilterとorganizationFilterの両方を設定した場合は両方に一致したものだけ同期します。
+
+### `githubIssuesSync.organizationFilter`
+
+- **型**: `array<string>`
+- **デフォルト**: `[]`
+- **説明**: 同期対象のOrganization/Userを制限（空配列で全owner）
+
 ### `githubIssuesSync.storageDirectory`
 
 - **型**: `string`
@@ -207,6 +221,7 @@ PATを使用する場合、以下のスコープが必要です：
 
 - ワークスペースがGitHubリポジトリのルートであることを確認
 - `.git/config`に`origin`リモートが設定されていることを確認
+- `githubIssuesSync.repositoryFilter` と `githubIssuesSync.organizationFilter` を確認
 - GitHubのAPI Rate Limitに達していないか確認（コンソールログを参照）
 
 ### 自動同期が動作しない

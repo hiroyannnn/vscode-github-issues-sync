@@ -127,6 +127,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub PAT handling with multiple secure fallback mechanisms
 - No hardcoded credentials or sensitive information
 
+## [0.3.0] - 2025-12-21
+
+### Added
+
+- Repository allowlist via `githubIssuesSync.repositoryFilter`
+- Organization/user allowlist via `githubIssuesSync.organizationFilter`
+
+### Changed
+
+- Skip sync with a notice when the current repo is filtered out
+- Updated README documentation for the new filters
+
 ## [0.0.1] - TBD
 
 ### Added

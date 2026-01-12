@@ -46,6 +46,8 @@ Press `F5` to start the Extension Development Host.
    - `syncInterval`: Sync interval in minutes (default: 60)
    - `maxIssues`: Max number of issues to sync (default: 100)
    - `includeClosedIssues`: Include closed issues (default: false)
+   - `repositoryFilter`: Restrict sync to specific repositories (default: empty)
+   - `organizationFilter`: Restrict sync to specific organizations/users (default: empty)
 
 ### Manual sync
 
@@ -156,6 +158,18 @@ Comment text...
 - **Default**: `[]`
 - **Description**: Sync only issues with specific milestones (empty = all milestones)
 
+### `githubIssuesSync.repositoryFilter`
+
+- **Type**: `array<string>`
+- **Default**: `[]`
+- **Description**: Restrict sync to specific repositories. Use `owner/repo` for exact matches or `repo` to match any owner (empty = all repositories). If both repository and organization filters are set, both must match.
+
+### `githubIssuesSync.organizationFilter`
+
+- **Type**: `array<string>`
+- **Default**: `[]`
+- **Description**: Restrict sync to specific organizations/users (empty = all owners).
+
 ### `githubIssuesSync.storageDirectory`
 
 - **Type**: `string`
@@ -207,6 +221,7 @@ If you use a PAT, you typically need:
 
 - Ensure the workspace is the root of a GitHub repository
 - Ensure `origin` is configured in `.git/config`
+- Check `githubIssuesSync.repositoryFilter` and `githubIssuesSync.organizationFilter`
 - Check if you’ve hit GitHub API rate limits (see console logs)
 
 ### Auto sync doesn’t run

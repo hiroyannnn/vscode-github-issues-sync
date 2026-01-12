@@ -98,11 +98,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const organizationFilter = normalizeFilterValues(
         config.get<string[]>('organizationFilter', []) ?? []
       );
-      const filterDecision = evaluateSyncFilters(
-        repoInfo,
-        repositoryFilter,
-        organizationFilter
-      );
+      const filterDecision = evaluateSyncFilters(repoInfo, repositoryFilter, organizationFilter);
       if (!filterDecision.allowed) {
         const repoLabel = `${repoInfo.owner}/${repoInfo.repo}`;
         const reasons = filterDecision.filteredBy.join(' & ');
